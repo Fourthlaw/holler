@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Generated assembly meshes used only for previews
+hardware/tabletop/_asm_*.stl
+
+# Editors and OS
+.DS_Store
+.vscode/
+.idea/
+
+# Secrets: never commit device keys, TLS keys, or credentials
+*.pem
+*.key
+secrets/
+.env
