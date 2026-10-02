@@ -10,7 +10,7 @@ Whole-home synchronized music and a push-to-talk intercom you build yourself. A 
 
 - **Music in every room, in sync.** One stream plays through the whole house with no echo between rooms.
 - **Your library, two ways.** Use Plex and pick music in Plexamp (needs a Plex Pass), or point it at a network share and pick music from a web page or any MPD app, with no account at all.
-- **Background mode.** Any room can switch to a soft "music from the other room" sound for dinner or conversation, while the rest of the house plays normally.
+- **Background mode.** Any room can switch to a soft "music from the other room" sound for dinner or conversation, while the rest of the house plays normally. One button on the speaker turns it on or off, and the server can schedule it.
 - **Push-to-talk intercom.** Hold TALK in any room to page every other room. Music ducks while someone is talking, then comes back.
 - **Priority page.** Double-press TALK to get through to rooms that are turned down.
 - **Phone app.** A paired iPhone can page the house and hear house pages from anywhere, with no VPN and no open ports at home.
@@ -62,12 +62,12 @@ The full design, including the mic privacy circuit, the audio processing chain, 
 
 | | |
 |---|---|
-| ![Top view with the four buttons](hardware/tabletop/renders/render_top.png) | ![Transmission line layout](hardware/tabletop/renders/render_plan.png) |
+| ![Top view with the five buttons](hardware/tabletop/renders/render_top.png) | ![Transmission line layout](hardware/tabletop/renders/render_plan.png) |
 
 - 250 x 173 x 84 mm. Prints on a Bambu Lab A1 (256 mm bed) in PETG with no supports.
 - Dayton Audio CE70PR-4 2.5 in. woofer and ND16FA-6 tweeter, one amp channel each, with the crossover and EQ done in software.
 - A folded transmission line about 730 mm long behind the woofer, tuned to about 115 Hz.
-- Four real buttons on top: TALK, volume down, volume up, and mic mute. No screws on top; they come in from the bottom.
+- Five real buttons on top: TALK, volume down, volume up, mic mute, and background mode. No screws on top; they come in from the bottom.
 - A cloth grille on a printed ring that snaps on with magnets.
 
 ### Print it or change it
@@ -109,7 +109,7 @@ Dimensions marked `VERIFY` in the script are estimates. Check them against the p
 - [ ] Mic privacy board (latch, load switches, buffer)
 - [ ] Endpoint firmware: music playback, then intercom, then audio tuning and background mode
 - [ ] Controller: Snapcast, Plexamp or MPD, intercom server, web app
-- [ ] In-wall plate with four buttons
+- [ ] In-wall plate with five buttons
 - [ ] Remote intercom on the local network (web page)
 - [ ] Rendezvous server and iPhone app
 

@@ -60,9 +60,10 @@ items = [
     (P((*B["TALK"], ZT + 0.6)), (1500, 1100), "TALK"),
     (P((*B["VOL_DOWN"], ZT + 0.6)), (1000, 1110), "VOL -"),
     (P((*B["VOL_UP"], ZT + 0.6)), (1580, 760), "VOL +"),
-    (P((*B["MIC_MUTE"], ZT + 0.6)), (1500, 120), "MIC MUTE (hardware latch)"),
+    (P((*B["MIC_MUTE"], ZT + 0.6)), (1050, 120), "MIC MUTE (hardware latch)"),
+    (P((*B["BACKGROUND"], ZT + 0.6)), (1540, 200), "BACKGROUND"),
 ]
-label(img, items, "Top: four moving button caps, no screws or other hardware").save("renders/render_top.png")
+label(img, items, "Top: five moving button caps, no screws or other hardware").save("renders/render_top.png")
 
 # 4. bottom
 bf = base.copy()

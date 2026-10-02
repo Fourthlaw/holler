@@ -258,16 +258,17 @@ Circuit:
 
 **Controls (moving button caps over tact switches)**
 
-- Four PCB-mounted 6x6 mm tactile switches: `VOL_DOWN`, `PTT`, `VOL_UP`, `MIC_MUTE`.
-- `VOL_DOWN` and `VOL_UP` are SPST-NO to ground on GPIOs with internal pull-ups. `PTT` and `MIC_MUTE` drive the mic privacy circuit directly; the ESP32 only reads them.
+- Five PCB-mounted 6x6 mm tactile switches: `VOL_DOWN`, `PTT`, `VOL_UP`, `MIC_MUTE`, `BACKGROUND`.
+- `VOL_DOWN`, `VOL_UP`, and `BACKGROUND` are SPST-NO to ground on GPIOs with internal pull-ups. `PTT` and `MIC_MUTE` drive the mic privacy circuit directly; the ESP32 only reads them.
+- `BACKGROUND` sits beside `MIC_MUTE` but is an ordinary software button. It shares no circuitry with the mute latch.
 
 Plate design:
 
 - Each button is a separate printed cap that moves in an opening in the plate. Nothing flexes; the plate stays rigid.
 - The cap slides in a short guide collar on the back of the plate (0.3 mm clearance per side), is kept from falling out by a flange under the collar, and has a stem that rests on its tact switch. The switch provides the return spring and the click.
 - Caps are loaded from behind before the switch board goes on, so they are captive and there are no visible fasteners.
-- Layout, left to right: `VOL_DOWN`, `PTT`, `VOL_UP`, with `MIC_MUTE` set apart from the other three so it is not pressed by accident. The in-wall plate layout needs a revision to fit the fourth button.
-- Touch marks engraved in the cap tops: a dish on PTT, minus and plus on volume, a slashed ring on MIC MUTE.
+- Layout, left to right: `VOL_DOWN`, `PTT`, `VOL_UP`, with `MIC_MUTE` and `BACKGROUND` as a pair set apart from the other three. The in-wall plate layout needs a revision to fit the fourth and fifth buttons.
+- Touch marks engraved in the cap tops: a dish on PTT, minus and plus on volume, a slashed ring on MIC MUTE, three fading bars on BACKGROUND.
 - Print plate and caps in PETG. Caps print top-down so the touch surface is the smooth bed side.
 
 The tabletop endpoint (3.4) uses the same cap design at a larger size; its generator is the reference implementation.
@@ -306,7 +307,7 @@ Alternate: local 5 V supply.
   - **Wall plate:**
     - Round speaker grille sized to the chosen driver.
     - Mic port hole aligned with the gasketed INMP441.
-    - Four button openings with guide collars for the moving caps (TALK, VOL -, VOL +, MIC MUTE).
+    - Five button openings with guide collars for the moving caps (TALK, VOL -, VOL +, MIC MUTE, BACKGROUND).
     - Optional diffused LED window.
     - Optional service door for USB access during flashing and debug.
 
@@ -343,6 +344,7 @@ Alternate: local 5 V supply.
 | VOL + / VOL - | Step `music_volume`; auto-repeat on hold |
 | Hold VOL + and VOL - together about 0.75 s | Toggle `music_mute` (speaker only) |
 | MIC MUTE | Toggle the hardware mic mute latch. Firmware sees the change but plays no part in it. |
+| BACKGROUND | Toggle this room between normal sound and background mode. Software only, so the server can also set or reset it. |
 
 A normal PTT starts on the first press, so the double-press gesture adds no delay to ordinary pages. A tap that is released quickly sends nothing.
 
@@ -375,7 +377,13 @@ What it does to the music, at the default amount:
 - Switching fades between the two filter sets over about half a second, so there is no click.
 - Intercom pages, priority pages, and alarms bypass the effect. Voice always plays at full clarity.
 - On the tabletop endpoint the low-pass sits below the crossover, so the tweeter goes nearly silent in this mode. That is expected.
-- Set per room from the web app or over MQTT, and it can be scheduled (for example, background in the kitchen from 6 to 8 pm).
+- Set per room three ways: the BACKGROUND button on the endpoint, the web app, or a schedule (for example, background in the kitchen from 6 to 8 pm).
+- The button and the server change the same setting, and the latest change wins:
+  - If a schedule puts a room in background mode, anyone in the room can press BACKGROUND to hear normally, and press it again to go back.
+  - A manual change holds until the next scheduled change for that room, or until someone changes it from the web app. The server can also reset rooms to a default at a set time (for example, everything back to normal at 6 am).
+  - The endpoint reports every change over MQTT, so the web app always shows the real state.
+- Feedback: the green LED blinks twice on entering background mode and once on leaving. The half-second fade in the sound is the main cue.
+- After a power loss the endpoint asks the server for its current mode. If the server cannot be reached, it starts in normal mode.
 - Cost: three or four extra biquads and a simple compressor per endpoint. Small for the ESP32-S3.
 - HiFi endpoints (3.2, 3.3) can run the same filters in software on the Pi, for example with CamillaDSP.
 - The values above are starting points to tune by ear on a built endpoint.
@@ -410,7 +418,7 @@ All volume values map to gain on a dB curve (for example 0 to 100 maps to -60 dB
   - On PTT release: stop transmit, release channel, restore local speaker.
 
 - **Button and LED task**
-  - Debounce all four zones and decode the gestures above.
+  - Debounce all five buttons and decode the gestures above.
   - VOL_UP / VOL_DOWN: step `music_volume` (for example 5 per press).
   - Drive LED per the behavior above and per-room LED policy.
 
@@ -464,8 +472,8 @@ Same electronics and firmware as the standard endpoint (3.1), in a printed deskt
 - Height is set by the front-firing 2.5 in. woofer (70 mm square frame) and its magnetic grille ring. The tweeter fits beside it without changing the box size.
 - Layout, viewed from the front:
   - Left three quarters: transmission line, with the woofer and a small tweeter side by side in a recess on the front face, behind one removable cloth grille.
-  - Right third: electronics bay (amp, ESP32-S3, battery, charger), mic port and light bar on the front face, four button caps in the lid above.
-- The top shows only the four button caps: no screws or other hardware. The lid is held by six M3 screws that come up through the bottom, where the four adhesive feet also go.
+  - Right third: electronics bay (amp, ESP32-S3, battery, charger), mic port and light bar on the front face, five button caps in the lid above.
+- The top shows only the five button caps: no screws or other hardware. The lid is held by six M3 screws that come up through the bottom, where the four adhesive feet also go.
   - Rear: line mouth slots and USB-C power.
 
 #### 3.4.2 Acoustic design: folded transmission line
@@ -528,20 +536,22 @@ Same as the standard endpoint unless noted.
 - **Amps:** two MAX98357A breakouts on one I2S bus. The SD pin selects the channel on each board: one plays the left slot (woofer), the other the right slot (tweeter). Both sit on trays at the front of the bay. Speaker leads run through a small pass-through in the separator wall, then along the floor of leg 1 to the drivers. Seal the pass-through with hot glue or silicone after wiring.
 - **Tweeter protection:** a 10 to 22 uF film capacitor in series with the tweeter. The software crossover normally keeps bass out of the tweeter, but this blocks it in hardware too, in case of a firmware fault, a turn-on thump, or a bad filter setting. Size it so its corner is well below the crossover (about 1 to 1.5 kHz with the 6 ohm tweeter).
 - **Mic:** INMP441 module, sealed to a 2.6 mm front port with a foam gasket, held in slide rails. Powered through the mic privacy circuit in 3.1.1 (PTT and the mute latch, both in hardware).
-- **Buttons:** four separate printed button caps in openings in the lid, over the electronics bay. Each cap moves; nothing about the lid flexes.
+- **Buttons:** five separate printed button caps in openings in the lid, over the electronics bay. Each cap moves; nothing about the lid flexes.
 
 | Button | Cap size | Center (x, y from front-left) | Cap top mark |
 |---|---|---|---|
 | TALK | 40 x 24 mm | (218.6, 26.0) | shallow dish, about 11 mm across |
 | VOL - | 18 x 14 mm | (206.1, 58.0) | engraved minus |
 | VOL + | 18 x 14 mm | (231.1, 58.0) | engraved plus |
-| MIC MUTE | 24 x 12 mm | (218.6, 86.0) | engraved ring with a slash |
+| MIC MUTE | 18 x 14 mm | (206.1, 86.0) | engraved ring with a slash |
+| BACKGROUND | 18 x 14 mm | (231.1, 86.0) | three engraved bars, fading in length |
 
-  - TALK is nearest the front edge and largest. MIC MUTE is at the back, set apart so it is not hit by accident.
+  - Three rows, front to back: TALK (largest, nearest the front edge), then VOL - and VOL +, then MIC MUTE and BACKGROUND. The two back pairs are the same size and line up under each other, and each pair spans the width of TALK.
+  - MIC MUTE and BACKGROUND are told apart by their marks and by the red mute light. Pressing the wrong one is harmless: mute only ever turns the mic off or back to push-to-talk, and background only changes the sound.
   - Stack, top to bottom: cap top 0.6 mm above the lid surface; cap body through the 3 mm lid and a 4 mm guide collar (0.3 mm clearance per side, chamfered opening at the top); a 1.5 mm retaining flange under the collar; a 4 mm stem that rests 0.05 mm above the tact switch actuator.
   - The tact switch is the return spring. At rest the switch pushes the cap up until the flange meets the collar. Pressing moves the cap about 0.3 mm to the click.
   - Caps drop into the openings from below before the button board is installed, so they are captive with no visible fasteners.
-  - Button board: perfboard about 54 x 86 mm on four 10.25 mm lid standoffs (M2 holes at 49 mm across, rows at y = 15.5 and 94.0 mm). Switch actuator tops must sit at 75.75 mm above the bottom of the base, which the standoff length sets for a 5.0 mm tall switch. Switch positions on the board match the cap centers above.
+  - Button board: perfboard about 54 x 91 mm on four 10.25 mm lid standoffs (M2 holes at 49 mm across, rows at y = 15.5 and 99.0 mm). Switch actuator tops must sit at 75.75 mm above the bottom of the base, which the standoff length sets for a 5.0 mm tall switch. Switch positions on the board match the cap centers above.
   - If the switches in hand are a different height, change `SWITCH_H` in the generator and re-run; the standoff length follows.
 - **Audio processing (on the ESP32-S3):** the decoded stream is processed per sample block before it goes to the I2S amps:
 
@@ -610,7 +620,7 @@ The 10 to 15 minute requirement is met with a large margin. A smaller LiPo pouch
 |---|---|---|---|
 | `base.stl` | Floor on the bed, open side up | None | Line walls, separator wall, trays, rails, bosses all print vertically. Grille holes are diamond-shaped so they self-support. |
 | `lid.stl` | Top face on the bed | None | Grooves, lip, standoffs, guide collars, and the six 75 mm pillars point up. |
-| `button_caps.stl` | Cap tops on the bed (all four on one plate) | None | Touch marks print on the smooth bed side. The flange underside is a 45 degree chamfer, so it needs no support. |
+| `button_caps.stl` | Cap tops on the bed (all five on one plate) | None | Touch marks print on the smooth bed side. The flange underside is a 45 degree chamfer, so it needs no support. |
 | `grille_ring.stl` | Front face on the bed | None | Magnet pockets and the cloth land face up. |
 
 All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest; leave the bed's default margins and center it.
@@ -640,7 +650,7 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 | Acoustic grille cloth, about 120 x 70 mm | 1 | Hot-glued to the back of the grille ring |
 | M2 x 5 self-tapping screw | 4 | Button perfboard to lid standoffs |
 | 12 mm self-adhesive bumper feet | 4 | Foot rings in the bottom (0.8 mm deep seats) |
-| 6x6 mm tact switch | 4 | TALK, VOL -, VOL +, MIC MUTE |
+| 6x6 mm tact switch | 5 | TALK, VOL -, VOL +, MIC MUTE, BACKGROUND |
 | Foam gasket tape (1 mm) | 1 | Under the driver frame, and the mic port |
 | Polyfill | a few grams | Line damping |
 | Small zip ties | 2 | Battery holder strap |
@@ -653,7 +663,7 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 4. Seal the pass-through.
 5. Add polyfill to the closed end and leg 1.
 6. Fit the amp, ESP32, charger, battery holder, USB-C breakout, mic module, and LED.
-7. Turn the lid over, drop the four caps into their openings, and screw the button board onto the standoffs. The board holds the caps in.
+7. Turn the lid over, drop the five caps into their openings, and screw the button board onto the standoffs. The board holds the caps in.
 8. Run silicone or foam tape in the lid grooves, set the lid on (the pillars drop into the floor sockets), flip the unit, and drive the six screws up through the bottom.
 9. Stick the four bumper feet in the foot rings, and press the grille ring into the recess.
 10. Before closing: continuity-check that no ESP32 GPIO connects to the mute latch inputs or either mic load switch enable.

@@ -3,9 +3,9 @@ Tabletop intercom/music endpoint enclosure - parametric generator.
 
 Parts (all print on a Bambu Lab A1, 256 x 256 x 256 mm):
   base.stl         tub with folded transmission line + electronics bay (print open side up)
-  lid.stl          top plate with four button openings and guide collars, plus the pillars
+  lid.stl          top plate with five button openings and guide collars, plus the pillars
                    the bottom screws thread into (print top face down)
-  button_caps.stl  TALK, VOL-, VOL+, MIC MUTE caps (print tops down)
+  button_caps.stl  TALK, VOL-, VOL+, MIC MUTE, BACKGROUND caps (print tops down)
   grille_ring.stl  magnetic grille ring for speaker cloth over the woofer and tweeter,
                    sits flush in the front recess (print face down)
 
@@ -84,7 +84,7 @@ MIC_BOARD_W, MIC_BOARD_T = 14.5, 1.2
 LED_X, LED_Z = SEP_X1 + 15.4, 46.0
 LED_W, LED_H = 22.0, 3.5
 
-# Lid buttons: four separate printed caps that travel in guide collars in the lid.
+# Lid buttons: five separate printed caps that travel in guide collars in the lid.
 # Each cap has a retaining flange under the collar and a stem that presses a 6x6 mm
 # tact switch on the button board. The switch is the return spring.
 # (name, centre x, centre y, cap width, cap depth, corner radius)
@@ -93,7 +93,8 @@ BUTTONS = [
     ("TALK",     BTN_CX,        26.0, 40.0, 24.0, 4.0),
     ("VOL_DOWN", BTN_CX - 12.5, 58.0, 18.0, 14.0, 3.0),
     ("VOL_UP",   BTN_CX + 12.5, 58.0, 18.0, 14.0, 3.0),
-    ("MIC_MUTE", BTN_CX,        86.0, 24.0, 12.0, 3.0),
+    ("MIC_MUTE", BTN_CX - 12.5, 86.0, 18.0, 14.0, 3.0),   # hardware latch
+    ("BACKGROUND", BTN_CX + 12.5, 86.0, 18.0, 14.0, 3.0), # software toggle, server can reset it
 ]
 CAP_CLEAR = 0.3              # per side, cap body to lid opening
 CAP_PROUD = 0.6              # cap top stands this far above the lid top
@@ -104,7 +105,7 @@ STEM_GAP = 0.05              # stem to switch actuator at rest
 SWITCH_H = 5.0               # tact switch height above PCB, actuator top (VERIFY)
 MARK_DEPTH = 0.4             # touch marks on the cap tops
 BTN_HOLES_X = 49.0           # M2 hole spacing across the button board
-BTN_HOLES_Y = (15.5, 94.0)   # M2 hole rows (board about 54 x 86 mm, y 12.5 to 98)
+BTN_HOLES_Y = (15.5, 99.0)   # M2 hole rows (board about 54 x 91 mm, y 12.5 to 103)
 # Board height follows from the cap stack: switch top sits just under the stem.
 SWITCH_TOP = (FLOOR + IN_H) - COLLAR_H - FLANGE_T - STEM_GAP
 STANDOFF_LEN = (FLOOR + IN_H) - (SWITCH_TOP - SWITCH_H)
@@ -485,6 +486,10 @@ def build_cap(name, bx, by, bw, bd, r, assembled=True):
     elif name == "VOL_UP":
         mark = union([box(bx - 4, bx + 4, by - 0.6, by + 0.6, top - d, top + 1),
                       box(bx - 0.6, bx + 0.6, by - 4, by + 4, top - d, top + 1)])
+    elif name == "BACKGROUND":
+        # three bars fading in length: "turned down, far away"
+        mark = union([box(bx - w, bx + w, by + oy - 0.6, by + oy + 0.6, top - d, top + 1)
+                      for w, oy in ((4.0, 3.0), (2.75, 0.0), (1.5, -3.0))])
     else:
         ring = cyl_z(bx, by, top - d, top + 1, 8.0) - cyl_z(bx, by, top - d - 1, top + 2, 5.6)
         slash = box(-0.6, 0.6, -4.0, 4.0, top - d, top + 1).rotate([0, 0, 45]).translate([bx, by, 0])
