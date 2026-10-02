@@ -3,7 +3,7 @@ Holler in-wall endpoint - parametric generator for a double-gang electrical box.
 
 Printed parts (PETG, no supports):
   carrier.stl       plate that screws to the box's four device holes and carries everything:
-                    driver seat, button collars and board standoffs, mic pocket, light pipe,
+                    driver seat, button collars and board standoffs, mic pocket, LED groove,
                     and four posts for the electronics sled (print front face down)
   sled.stl          plate that screws to the carrier posts behind the driver; holds the ESP32
                     and amp (print flat, trays up)
@@ -85,8 +85,12 @@ STANDOFF_LEN = -CAR_T - BOARD_Z
 MIC_X, MIC_Y = 28.0, -26.2
 MIC_POCKET_ID, MIC_POCKET_H = 14.4, 4.0
 MIC_PORT_CARRIER_D, MIC_PORT_COVER_D = 4.0, 2.6
-# Status light: LED on the button board, light pipe through the carrier, thin skin in the cover
-LED_X, LED_Y, LED_D = 41.0, -24.0, 4.0
+# Status glow, indirect: a small LED lies in a groove in the carrier's front face, under the
+# cover and behind the grille cloth, at the top of the speaker opening. It fires sideways across
+# the driver cone. There is no window or light pipe; nothing points at the room.
+LED_GROOVE_W, LED_GROOVE_DEPTH = 3.2, 1.8
+LED_GROOVE_R = (SOUND_HOLE_D / 2 - 0.5, 32.0)     # radial extent from the driver centre, straight up
+LED_WIRE_D = 2.5                                   # wire hole through the carrier at the outer end
 
 # Sled posts and sled
 POST_D = 7.0
@@ -105,7 +109,6 @@ COVER_W = CAR_W + 2 * (COVER_GAP + COVER_SKIRT_T)
 COVER_H = CAR_H + 2 * (COVER_GAP + COVER_SKIRT_T)
 GRILLE_D = 48.0                    # speaker opening in the cover; cloth is glued behind it
 CLOTH_LAND, CLOTH_RELIEF = 5.0, 0.6
-LED_SKIN = 0.6
 MAG_D, MAG_T = 6.0, 2.0            # 6 x 2 mm disc magnets, 4 in the carrier and 4 in the cover
 MAG_PTS = [(sx * 50.5, sy * 48.5) for sx in (-1, 1) for sy in (-1, 1)]
 
@@ -158,9 +161,8 @@ def build_carrier():
     # button board standoffs
     for x, y in BOARD_PTS:
         adds.append(cyl(x, y, BOARD_Z, zb + 0.01, 5.0, seg=32))
-    # mic pocket ring and light pipe
+    # mic pocket ring
     adds.append(cyl(MIC_X, MIC_Y, zb - MIC_POCKET_H, zb + 0.01, MIC_POCKET_ID + 3.2))
-    adds.append(cyl(LED_X, LED_Y, BOARD_Z + 0.4, zb + 0.01, LED_D + 3.0, seg=32))
     # sled posts
     for x, y in POST_PTS:
         adds.append(cyl(x, y, SLED_Z, zb + 0.01, POST_D, seg=40))
@@ -185,8 +187,10 @@ def build_carrier():
     # mic pocket and port
     cuts.append(cyl(MIC_X, MIC_Y, zb - MIC_POCKET_H - 1, zb, MIC_POCKET_ID, seg=48))
     cuts.append(cyl(MIC_X, MIC_Y, zb - 1, 1, MIC_PORT_CARRIER_D, seg=24))
-    # light pipe bore
-    cuts.append(cyl(LED_X, LED_Y, BOARD_Z - 1, 1, LED_D, seg=24))
+    # LED groove in the front face, from the sound hole straight up, and its wire hole
+    cuts.append(box(DRV_X - LED_GROOVE_W / 2, DRV_X + LED_GROOVE_W / 2, DRV_Y + LED_GROOVE_R[0], DRV_Y + LED_GROOVE_R[1],
+                    -LED_GROOVE_DEPTH, 0.01))
+    cuts.append(cyl(DRV_X, DRV_Y + LED_GROOVE_R[1] - LED_WIRE_D / 2, zb - 1, 0.01, LED_WIRE_D, seg=20))
     # post inserts (M3 heat-set at the post ends)
     for x, y in POST_PTS:
         cuts.append(cyl(x, y, SLED_Z - 1, SLED_Z + M3_INSERT_DEPTH, M3_INSERT_D, seg=24))
@@ -265,7 +269,6 @@ def build_cover():
         cuts.append(rrect(bx, by, bw + 2 * COVER_CAP_CLEAR, bh + 2 * COVER_CAP_CLEAR, rr + COVER_CAP_CLEAR, -1, COVER_T + 1))
     cuts.append(cyl(MIC_X, MIC_Y, -1, COVER_T + 1, MIC_PORT_COVER_D, seg=24))
     cuts.append(cyl(MIC_X, MIC_Y, -0.01, 0.8, 8.0, seg=32))                 # foam gasket seat around the mic port
-    cuts.append(cyl(LED_X, LED_Y, -0.01, COVER_T - LED_SKIN, LED_D + 1.0, seg=32))   # light window, thin skin left
     for x, y in MAG_PTS:
         cuts.append(cyl(x, y, -0.01, MAG_T + 0.1, MAG_D + 0.2, seg=32))
     # fingernail notch in the bottom of the skirt

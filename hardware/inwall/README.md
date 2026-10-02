@@ -18,6 +18,7 @@ The electronics, mic privacy circuit, buttons, and firmware are the same as the 
 - INMP441 mic behind a gasketed port
 - Five moving button caps: TALK, VOL -, VOL +, MIC MUTE, BACKGROUND
 - A cover held on by magnets, so no screws show
+- No light on the plate: the status glow is indirect, behind the speaker cloth
 
 ## Parts
 
@@ -49,7 +50,7 @@ PETG, no supports. The carrier's sled posts are 35 mm tall and 7 mm across; slow
 1. Press the inserts into the sled posts and the driver clamp bosses. Glue the magnets into the carrier and the cover with matching polarity.
 2. Seat the driver in the carrier and clamp it with the ring.
 3. Drop the five caps into their collars from the back, then screw the button board onto its standoffs. The board holds the caps in.
-4. Seat the mic in its pocket, port toward the room.
+4. Seat the mic in its pocket, port toward the room. Lay the status LED in the groove at the top of the speaker opening, facing the centre, with its wires through the hole.
 5. Fit the ESP32 and amp to the sled, wire everything, and screw the sled to the posts.
 6. Screw the carrier to the box with the four device screws, with foam tape between the carrier and the wall.
 7. Glue cloth behind the cover's speaker opening, put a foam ring around the mic port, and set the cover on.

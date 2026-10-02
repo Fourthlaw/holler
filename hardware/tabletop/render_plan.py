@@ -42,7 +42,7 @@ ax = fig.add_subplot(111, projection="3d")
 shade(ax, base, "#3a3f46", light=(-0.2, -0.9, 0.4))
 shade(ax, lid, "#4a5059", light=(-0.2, -0.9, 0.4))
 setup(ax, 18, -70, ((0, 200), (0, 135), (0, 67)))
-ax.set_title("Assembled, front view (driver grille left, mic port and LED window right)", fontsize=13)
+ax.set_title("Assembled, front view (driver grille left, mic port right)", fontsize=13)
 plt.tight_layout(); plt.savefig("renders/render_front.png", bbox_inches="tight"); plt.close()
 
 # 3. lid underside
@@ -97,7 +97,7 @@ for i, (a, b) in enumerate(legs):
     lab(100, mid[i] - 7 if i else mid[0] + 9, f"leg {i+1}: {b-a:.0f} mm  ({st['areas_mm2'][i]/100:.0f} cm²)")
 lab((T.MOUTH_X0 + T.MOUTH_X1) / 2, T.D + 13, "mouth (rear slots)")
 bx = (T.SEP_X1 + T.W - T.WALL) / 2
-lab(bx + 12, 2.4 - 8, "mic port + LED window")
+lab(bx + 12, 2.4 - 8, "mic port")
 lab(T.SEP_X1 + 13.5, 16, "amp")
 lab(T.SEP_X1 + 16.5, 85, "ESP32-S3\nDevKitC-1")
 lab(T.W - T.WALL - 13, 85, "18650\nholder")

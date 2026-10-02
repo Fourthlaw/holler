@@ -53,7 +53,7 @@ items = place(img, [
     (P(ctx, *B["VOL_UP"], W.COVER_T + 0.6), "VOL - / VOL +"),
     (P(ctx, B["BACKGROUND"][0] + 3, B["BACKGROUND"][1] - 3, W.COVER_T + 0.6), "MIC MUTE / BACKGROUND"),
     (P(ctx, W.MIC_X, W.MIC_Y, W.COVER_T), "mic port"),
-    (P(ctx, W.LED_X, W.LED_Y, W.COVER_T), "status light (thin skin)"),
+    (P(ctx, W.DRV_X, W.DRV_Y + 21, W.COVER_T), "status glow (behind the cloth, indirect)"),
 ])
 label(img, items, f"In-wall endpoint: cover {W.COVER_W:.0f} x {W.COVER_H:.0f} mm, no visible screws").save("renders/render_front.png")
 
@@ -82,7 +82,7 @@ items = place(img, [
     (P(ctx, B["VOL_DOWN"][0] - 8, B["VOL_DOWN"][1], zb - 4), "button guide collars"),
     (P(ctx, *W.BOARD_PTS[1], W.BOARD_Z), "button board standoffs"),
     (P(ctx, W.MIC_X, W.MIC_Y - 7.5, zb - 4), "mic pocket"),
-    (P(ctx, W.LED_X, W.LED_Y, W.BOARD_Z), "light pipe"),
+    (P(ctx, W.DRV_X, W.DRV_Y + W.LED_GROOVE_R[1] - 1.2, zb), "LED wire hole (groove on the front)"),
     (P(ctx, *W.POST_PTS[0], W.SLED_Z), "sled posts (M3 inserts)"),
     (P(ctx, *W.DEV_PTS[0], zb), "box screw holes (6-32)"),
 ])

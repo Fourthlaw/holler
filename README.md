@@ -25,7 +25,8 @@ A microphone in every room has to be provably off.
 
 - A room's mic has power only while someone in that room is holding TALK **and** that room's mic mute is off.
 - Both conditions are wired in hardware. The firmware can see the state but has no wire that can change it, so a software bug or a compromised device cannot turn a mic on.
-- A red light shows mic mute. It is driven by the same hardware latch, so it cannot be faked.
+- A soft red glow behind the speaker cloth shows mic mute. It is driven by the same hardware latch, so it cannot be faked.
+- No bright lights. Every indicator is indirect and dim enough for a bedroom at night.
 - Nothing remote can listen to a room. The phone app can talk to the house and hear a page that someone in the house chose to send. That is all.
 - Whatever sits between a phone and the house, a hosted server or the open internet, only ever carries encrypted audio it cannot decrypt.
 

@@ -80,9 +80,12 @@ DRV_INSERT_D, DRV_INSERT_DEPTH = 5.6, 6.0    # M4 heat-set inserts for the drive
 MIC_X, MIC_Z = SEP_X1 + 38.4, 40.0
 MIC_PORT_D = 2.6
 MIC_BOARD_W, MIC_BOARD_T = 14.5, 1.2
-# Status light bar: thin-skin slot in the front wall, LEDs behind it
-LED_X, LED_Z = SEP_X1 + 15.4, 46.0
-LED_W, LED_H = 22.0, 3.5
+# Status glow, indirect: a 3 mm LED sits in a hole in the recess floor above the tweeter, hidden
+# under the solid frame of the grille ring. A hooded channel in the back of the ring lets the
+# light out sideways into the grille opening, behind the cloth. Nothing points at the room.
+LED_HOLE_D = 3.2
+LED_OFF_Z = 20.0             # LED hole centre above the tweeter centre
+LED_CH_W, LED_CH_DEPTH = 6.0, 2.5
 
 # Lid buttons: five separate printed caps that travel in guide collars in the lid.
 # Each cap has a retaining flange under the collar and a stem that presses a 6x6 mm
@@ -261,11 +264,6 @@ def build_base():
     adds.append(box(MIC_X - MIC_BOARD_W / 2 - 2.6, MIC_X + MIC_BOARD_W / 2 + 2.6,
                     rail_y0, rail_y1, MIC_Z - 13, MIC_Z - 11))       # bottom stop
 
-    # light box behind the light bar (open at the back for the LED board)
-    lb = box(LED_X - LED_W / 2 - 2.0, LED_X + LED_W / 2 + 2.0, WALL, WALL + 6.0, LED_Z - LED_H / 2 - 2.0, LED_Z + LED_H / 2 + 2.0)
-    lb = lb - box(LED_X - LED_W / 2, LED_X + LED_W / 2, WALL - 0.1, WALL + 6.1, LED_Z - LED_H / 2, LED_Z + LED_H / 2)
-    adds.append(lb)
-
     # amp tray (MAX98357A breakout ~19.4 x 17.8)
     adds.append(ledge_tray(bx0 + 3.5, 14.0, 19.8, 18.2, ledge_h=6.0))           # woofer channel
     adds.append(ledge_tray(bx0 + 3.5 + 19.8 + 4.0, 14.0, 19.8, 18.2, ledge_h=6.0))  # tweeter channel
@@ -325,8 +323,8 @@ def build_base():
     # mic board slot in rails (board slides down from above)
     cuts.append(box(MIC_X - MIC_BOARD_W / 2 - 1.2, MIC_X + MIC_BOARD_W / 2 + 1.2,
                     WALL + 2.5, WALL + 2.5 + MIC_BOARD_T + 0.3, MIC_Z - 11, MIC_Z + 10))
-    # light bar: thin-skin slot (0.6 mm skin left) with a small light box behind it
-    cuts.append(box(LED_X - LED_W / 2, LED_X + LED_W / 2, 0.6, WALL + 1, LED_Z - LED_H / 2, LED_Z + LED_H / 2))
+    # status LED hole through the recess floor, above the tweeter (hidden by the grille ring)
+    cuts.append(cyl_y(TW_X, TW_Z + LED_OFF_Z, RECESS_D - 1, RECESS_D + BAFFLE_T + 1, LED_HOLE_D, seg=24))
 
     # speaker wire pass-through in separator wall (seal after wiring)
     cuts.append(box(SEP_X0 - 1, SEP_X1 + 1, 20, 24, FLOOR + 4, FLOOR + 8))
@@ -526,6 +524,9 @@ def build_grille_ring(assembled=True):
     ring = ring - opening(CLOTH_LAND, RECESS_D - CLOTH_RELIEF_T, RECESS_D + 1)
     for mx, mz in MAG_POS:
         ring = ring - cyl_y(mx, mz, RECESS_D - MAG_T - 0.2, RECESS_D + 1, MAG_D + 0.2, seg=32)
+    # hooded light channel in the back of the ring: from over the LED down into the opening
+    ring = ring - box(TW_X - LED_CH_W / 2, TW_X + LED_CH_W / 2, RECESS_D - LED_CH_DEPTH, RECESS_D + 1,
+                      TW_Z + TW_OPEN_D / 2 - 2.0, TW_Z + LED_OFF_Z + LED_HOLE_D / 2 + 1.0)
     return ring
 
 

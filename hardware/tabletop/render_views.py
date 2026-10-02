@@ -38,7 +38,6 @@ items = [
     (P((T.TL_X1 - 15, (L[0][0] + L[0][1]) / 2, T.HB - 4)), (980, 1250), "closed end (polyfill here)"),
     (P((T.SEP_X1 + 13, 20, T.FLOOR + 9)), (200, 1150), "amp tray"),
     (P((T.MIC_X, T.WALL + 4, T.MIC_Z + 9)), (260, 280), "mic gasket ring + slide rails"),
-    (P((T.LED_X, T.WALL + 5, T.LED_Z + 3)), (330, 420), "light box behind light bar"),
     (P((T.SEP_X1, 22, T.FLOOR + 6)), (560, 1250), "speaker wire pass-through"),
 ]
 label(img, items, "Base from the rear: inside of the front wall").save("renders/render_base_front_inside.png")
@@ -49,7 +48,7 @@ P = lambda p: project(p, ctx)
 items = [
     (P((T.RECESS_CX, 0, T.DRV_Z + 30)), (330, 830), "magnetic grille ring (cloth over woofer + tweeter)"),
     (P((T.MIC_X, 0, T.MIC_Z)), (1500, 840), "mic port"),
-    (P((T.LED_X, 0, T.LED_Z)), (1100, 850), "light bar (mic-mute glow)"),
+    (P((T.TW_X, 0, T.TW_Z + 13)), (1100, 850), "status glow (behind the cloth, indirect)"),
 ]
 label(img, items, f"Assembled: {T.W:.0f} x {T.D:.0f} x {ZT:.1f} mm").save("renders/render_front.png")
 

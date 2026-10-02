@@ -12,6 +12,7 @@ Whole-home synchronized music and push-to-talk intercom.
 - All endpoints digitally controllable (volume, mute, overrides) from a central controller.
 - Privacy by design: a room microphone is powered only while someone in that room holds PTT and the room's mic mute is off. Both conditions are enforced in hardware. No software path, including compromised firmware, can enable a microphone.
 - Media hosting and control, two ways: Plex (library and remote control, needs a Plex Pass) or a plain network share with an open-source player (no accounts, no subscription). A household picks one.
+- No bright lights: every indicator on every endpoint is indirect and dim enough for a bedroom at night. No LED points at the room, and nothing blinks or pulses on its own.
 - Background mode: any room can switch its music to a soft "playing in the next room" sound without changing what the rest of the house hears.
 - Remote intercom: family phones (iPhone and Android) can page the house and hear house pages from anywhere, without a VPN. The default path opens no inbound port at home; a simpler direct path that does is offered as a lower-security option. Remote access covers the intercom only, not the music stream or house controls.
 
@@ -330,7 +331,7 @@ Circuit:
 - **Mute latch.** The MIC MUTE button (momentary tact switch) goes through an RC debounce and a Schmitt trigger into a D flip-flop (74LVC1G74 class) wired to toggle (/Q fed back to D). Each press flips mute on or off.
 - **Power-up state is muted.** An RC on the flip-flop's preset input forces mute on at power-up. After a full power loss, the mic stays off until someone presses MIC MUTE.
 - **No back-powering through the data lines.** A powered-down mic can be partly powered through its I2S pins by the ESP32's clocks. SCK, WS, and SD pass through a small logic buffer with Ioff (74LVC class) that is itself powered from the switched mic rail. When the rail is off, the buffer is high-impedance and the mic is fully dead. SD has a pull-down on the ESP32 side.
-- **Hardware glow.** The red element of the status LED is driven directly from the mute latch output through a resistor. Red means the mic is disconnected, and firmware cannot fake it or turn it off.
+- **Hardware glow.** The red element of the status light (indirect; see Status light below) is driven directly from the mute latch output through a resistor. Red means the mic is disconnected, and firmware cannot fake it or turn it off.
 - **Firmware can read, not write.** The ESP32 reads the PTT line and the mute state on input-only GPIOs through series resistors. No GPIO connects to the latch clock, D, preset, or clear inputs, or to either load switch enable. Verify this with a continuity check on every board before it goes into an enclosure.
 - After the mic rail turns on, allow for the INMP441 startup time (tens of ms) before treating samples as valid.
 
@@ -345,23 +346,29 @@ Plate design:
 - Each button is a separate printed cap that moves in an opening in the plate. Nothing flexes; the plate stays rigid.
 - The cap slides in a short guide collar on the back of the plate (0.3 mm clearance per side), is kept from falling out by a flange under the collar, and has a stem that rests on its tact switch. The switch provides the return spring and the click.
 - Caps are loaded from behind before the switch board goes on, so they are captive and there are no visible fasteners.
-- Layout: the speaker fills the left gang. The right gang holds the buttons in three rows, top to bottom: TALK, then VOL - and VOL +, then MIC MUTE and BACKGROUND, with the mic port and status light below.
+- The first plan for the in-wall plate was hidden press zones: thinned areas of the plate that flex onto the switches, with nothing visible on the surface. Moving caps replaced them for a better feel and longer life. A flex-zone cover is still possible on the same carrier, since the switches and board would not change.
+- Layout: the speaker fills the left gang. The right gang holds the buttons in three rows, top to bottom: TALK, then VOL - and VOL +, then MIC MUTE and BACKGROUND, with the mic port below. The status light is behind the speaker cloth, not on the plate.
 - Touch marks engraved in the cap tops: a dish on PTT, minus and plus on volume, a slashed ring on MIC MUTE, three fading bars on BACKGROUND.
 - Print plate and caps in PETG. Caps print top-down so the touch surface is the smooth bed side.
 
 The tabletop endpoint (3.4) uses the same cap design at a larger size; its generator is the reference implementation.
 
-**Status LED (optional, indirect)**
+**Status light (indirect, on every endpoint)**
 
-- Bicolor (red/green) LED on the PCB behind the speaker grille or a diffused window. Indirect light only.
-- Driven at very low current (0.1 to 0.5 mA) through large series resistors so it is bedroom-safe.
-- **Red is hardware-only:** driven by the mic mute latch, steady soft glow while the mic is disconnected. Firmware has no control over it.
-- **Green is firmware:**
-  - Off in normal operation.
-  - On while volume buttons are pressed; fades out about 1 s after the last press.
-  - Slow pulse while the speaker is muted.
-  - Quick blinks if PTT is pressed while another room holds the channel, or while the mic is muted.
-- The red glow cannot be disabled per room, since it is the visible proof that the mic is off. Green can be disabled per room in firmware.
+Rule for all endpoints: no LED points at the room. The light is a soft glow seen through the speaker grille cloth, dim enough that it does not light a dark bedroom.
+
+- **Placement:** the LED sits behind the grille cloth, hidden from direct view, and shines sideways across the baffle or the driver cone. What the room sees is a faint wash of colour through the cloth, not a point of light. There are no light windows, light pipes, or thin-skin lenses on any face.
+  - In-wall: a small LED lies in a groove in the front of the carrier, under the cover, at the top of the speaker opening. It fires across the cone.
+  - Tabletop: a 3 mm LED sits in the recess floor above the tweeter, under the solid frame of the grille ring. A hooded channel in the back of the ring lets the light out sideways into the opening.
+- **Brightness:** bicolor (red/green), driven at very low current (0.1 to 0.5 mA) through large series resistors. The resistor value is chosen per unit; bedrooms get the dimmest value. Check it in a dark room before closing the unit.
+- **Red is hardware-only:** driven by the mic mute latch. A steady, soft glow while the mic is disconnected. Firmware has no control over it. It never blinks or pulses.
+- **Green is firmware, and only in answer to a button press:**
+  - Off whenever nobody is touching the unit.
+  - On while a volume button is pressed; fades out about 1 s after the last press.
+  - A press while the speaker is muted shows a dim glow for about 2 s, so the user can tell it is muted.
+  - Two short blinks if TALK is pressed while another room holds the channel, or while the mic is muted.
+- **Per room:** green can be turned off in firmware for any room. The red glow can be dimmed further with its resistor, or left unpopulated in a room that should be fully dark, at the cost of losing the at-a-glance proof that the mic is off.
+- Open question: in a bedroom where the mic stays muted, the red glow is on all night, however dim. A hardware-only alternative is a timed glow that lights for about 10 s after MIC MUTE or TALK is pressed (an RC timer on the latch output, no firmware involved).
 
 **Power**
 
@@ -385,14 +392,15 @@ The model is in `hardware/inwall/` (`inwall_endpoint.py`). Everything mounts to 
 
 | Printed part | What it does |
 |---|---|
-| Carrier | 112 x 108 x 3 mm plate that screws to the box's four device holes with 6-32 flat-head screws. Its back carries the driver seat and clamp bosses, the five button guide collars, button board standoffs, a mic pocket, a light pipe, and four posts for the sled |
+| Carrier | 112 x 108 x 3 mm plate that screws to the box's four device holes with 6-32 flat-head screws. Its back carries the driver seat and clamp bosses, the five button guide collars, button board standoffs, a mic pocket, and four posts for the sled. A groove in its front face holds the status LED behind the cloth |
 | Sled | 94 x 87 mm plate that screws to the four posts, 35 mm behind the carrier, clear of the driver. Trays for the ESP32 and amp, zip-tie slots (including a free area for a PoE splitter), and wire pass-throughs |
-| Cover | 117 x 113 mm wall plate, close to a standard double-gang plate. Held on by four pairs of 6 x 2 mm magnets, so no screws show. Speaker cloth is glued behind its 48 mm opening. Openings for the five caps, a mic port, and a thin-skin window for the status light |
+| Cover | 117 x 113 mm wall plate, close to a standard double-gang plate. Held on by four pairs of 6 x 2 mm magnets, so no screws show. Speaker cloth is glued behind its 48 mm opening. Openings for the five caps and a mic port. No light window: the status glow shows through the speaker cloth |
 | Button caps | Same moving-cap stack as the tabletop: guide collar, retaining flange, stem on a 6x6 tact switch. TALK is 32 x 16 mm; the other four are 14 x 11 mm |
 | Driver ring | Clamps the 2 in. driver into its seat with four M2 screws |
 
 - **Stack depth:** about 51 mm behind the wall surface to the back of the ESP32, in a box about 74 mm deep inside. That leaves about 23 mm for cable.
-- **Button board:** perfboard about 33 x 73 mm on four 10.25 mm standoffs. It also carries the status LED, which shines through the light pipe.
+- **Button board:** perfboard about 33 x 73 mm on four 10.25 mm standoffs.
+- **Status LED:** lies in a 3.2 x 1.8 mm groove in the carrier's front face at the top of the speaker opening, with a wire hole through the carrier. The cover and the cloth sit over it.
 - **Mic:** a round INMP441 breakout drops into the pocket and is held with a dab of glue. A foam ring between the carrier and the cover seals the port to the room.
 - **Fit checks:** the generator checks every printed part and the driver, button board, and ESP32 against each other and against the box, and reports any overlap. The current model has none.
 - **Service:** pull the cover off (fingernail notch at the bottom), remove four screws, and the whole endpoint comes out on its wires.
@@ -472,7 +480,7 @@ What it does to the music, at the default amount:
   - If a schedule puts a room in background mode, anyone in the room can press BACKGROUND to hear normally, and press it again to go back.
   - A manual change holds until the next scheduled change for that room, or until someone changes it from the web app. The server can also reset rooms to a default at a set time (for example, everything back to normal at 6 am).
   - The endpoint reports every change over MQTT, so the web app always shows the real state.
-- Feedback: the green LED blinks twice on entering background mode and once on leaving. The half-second fade in the sound is the main cue.
+- Feedback: the green glow shows twice briefly on entering background mode and once on leaving. The half-second fade in the sound is the main cue.
 - After a power loss the endpoint asks the server for its current mode. If the server cannot be reached, it starts in normal mode.
 - Cost: three or four extra biquads and a simple compressor per endpoint. Small for the ESP32-S3.
 - HiFi endpoints (3.2, 3.3) can run the same filters in software on the Pi, for example with CamillaDSP.
@@ -562,7 +570,7 @@ This is the reference build. It uses the shared electronics and firmware describ
 - Height is set by the front-firing 2.5 in. woofer (70 mm square frame) and its magnetic grille ring. The tweeter fits beside it without changing the box size.
 - Layout, viewed from the front:
   - Left three quarters: transmission line, with the woofer and a small tweeter side by side in a recess on the front face, behind one removable cloth grille.
-  - Right third: electronics bay (amp, ESP32-S3, battery, charger), mic port and light bar on the front face, five button caps in the lid above.
+  - Right third: electronics bay (amp, ESP32-S3, battery, charger), mic port on the front face, five button caps in the lid above.
 - The top shows only the five button caps: no screws or other hardware. The lid is held by six M3 screws that come up through the bottom, where the four adhesive feet also go.
   - Rear: line mouth slots and USB-C power.
 
@@ -660,7 +668,7 @@ Intercom Opus  -> ducking mix (bypasses background mode)  -+       |            
   - All settings are biquad coefficients stored in flash and adjustable over MQTT, so the endpoint can be tuned after it is built.
   - Tuning method: measure each driver in the finished box with a measurement mic (for example a miniDSP UMIK-1 with the free REW software), set the EQ and crossover from the measurements, and save the result as the endpoint's profile.
   - CPU: about 20 biquads at 48 kHz is a small load for the S3 using Espressif's esp-dsp library.
-- **Light bar:** a 22 x 3.5 mm thin-skin slot (0.6 mm left) in the front face, with a small printed light box behind it so the LEDs do not light up the inside of the bay. The red element glows steadily while the mic is muted, driven by hardware. Green is firmware status (3.1.1). Nothing shows when the LEDs are off.
+- **Status light:** indirect, behind the grille cloth (see Status light in 3.1.1). A 3 mm bicolor LED pushes into a 3.2 mm hole in the recess floor 20 mm above the tweeter centre, where the solid frame of the grille ring covers it. A hooded channel in the back of the ring lets the light spill sideways into the grille opening. Seal the LED into its hole with glue so the transmission line stays closed. There is no light window on any face of the enclosure.
 
 #### 3.4.4 Power, battery backup, and hum
 
@@ -719,7 +727,6 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 
 - **PETG.** The A1 is an open-frame printer, so ASA and ABS will warp at this size.
 - 0.4 mm nozzle, 0.2 mm layers. The 2.4 mm walls print as solid perimeters; set wall loops high enough (6 at 0.42 mm line width) that the walls have no infill gaps, which keeps them stiff and acoustically dead.
-- Base: confirm in the slicer preview that the 0.6 mm light bar skin is solid.
 - Caps: test-fit one cap in its opening before printing the full lid. If it binds, raise `CAP_CLEAR`; if it rattles, lower it.
 - Lid pillars are 75 mm tall and 9 mm across. They print fine in PETG on the A1, but slow the outer walls a little for the top half of the pillars if they wobble, since the bed moves under them.
 - Expect roughly 450 to 500 g of PETG for the base and about 190 g for the lid.
