@@ -5,8 +5,8 @@ Printed parts (PETG, no supports):
   carrier.stl       plate that screws to the box's four device holes and carries everything:
                     driver seat, button collars and board standoffs, mic pocket, LED groove,
                     and four posts for the electronics sled (print front face down)
-  sled.stl          plate that screws to the carrier posts behind the driver; holds the ESP32
-                    and amp (print flat, trays up)
+  sled.stl          plate that screws to the carrier posts behind the driver; holds the PoE
+                    ESP32 board and the amp (print flat, trays up)
   cover.stl         cosmetic wall plate held on by magnets; hides the screws, holds the grille
                     cloth (print front face down)
   button_caps.stl   TALK, VOL-, VOL+, MIC MUTE, BACKGROUND (print tops down)
@@ -99,7 +99,14 @@ SLED_Z = -38.0                     # front face of the sled; clears the 30.8 mm 
 SLED_T = 2.4
 SLED_W, SLED_H, SLED_R = 94.0, 87.0, 5.0
 M3_INSERT_D, M3_INSERT_DEPTH = 4.0, 6.0
-ESP_BOARD = (26.4, 70.5)           # ESP32-S3-DevKitC-1 footprint; change for a PoE board VERIFY
+# Waveshare ESP32-S3-ETH with its PoE module (the -POE- version): 72.8 x 21 mm, RJ45 at one end.
+# Power and data both come over the one Ethernet cable. Use the board without header pins, or
+# wire to the pads; the tray supports the board at its two ends so the pad rows stay clear. VERIFY
+ESP_BOARD = (72.8, 21.0)           # length along x, width along y
+ESP_X0, ESP_Y0 = -33.5, 11.5      # board corner on the sled; RJ45 jack is at the -x end
+ESP_LEDGE_H = 3.0
+ESP_STACK_H = 14.0                 # RJ45 jack and PoE module height above the board VERIFY
+RJ45_PLUG_LEN = 12.0               # how far an unbooted plug sticks out past the board VERIFY
 AMP_BOARD = (19.8, 18.2)           # MAX98357A breakout
 
 # Cover (wall plate)
@@ -214,33 +221,44 @@ def ledge_tray(x0, y0, bw, bl, z0, ledge_h=3.0, ledge=1.6, side_h=3.0, t=1.6):
     return union(parts)
 
 
+def end_tray(x0, y0, bl, bw, z0, ledge_h, side_h=3.0, t=1.6, ledge=4.0):
+    """Board rests on a ledge at each short end; corner walls locate it. The long edges stay
+    open for the pad rows, and the -x end is open for the RJ45 plug."""
+    parts = []
+    for xa in (x0, x0 + bl - ledge):
+        parts.append(box(xa, xa + ledge, y0, y0 + bw, z0, z0 + ledge_h))
+    for ya in (y0 - t, y0 + bw):                       # side walls at the four corners
+        for xa in (x0, x0 + bl - 10.0):
+            parts.append(box(xa, xa + 10.0, ya, ya + t, z0, z0 + ledge_h + side_h))
+    parts.append(box(x0 + bl, x0 + bl + t, y0 - t, y0 + bw + t, z0, z0 + ledge_h + side_h))   # stop at the +x end
+    return union(parts)
+
+
 def build_sled_local():
     """Sled in its print orientation: plate on z = 0..SLED_T, trays upward."""
     plate = rrect(0, 0, SLED_W, SLED_H, SLED_R, 0, SLED_T)
     adds = [plate]
-    ew, el = ESP_BOARD
-    ex0, ey0 = 8.0, -el / 2
-    adds.append(ledge_tray(ex0, ey0, ew, el, SLED_T - 0.01))
+    el, ew = ESP_BOARD
+    adds.append(end_tray(ESP_X0, ESP_Y0, el, ew, SLED_T - 0.01, ESP_LEDGE_H))
     aw, al = AMP_BOARD
-    ax0, ay0 = -34.0, 14.0
+    ax0, ay0 = -34.0, -32.0
     adds.append(ledge_tray(ax0, ay0, aw, al, SLED_T - 0.01))
-    # stiffening rib between the trays
-    adds.append(box(-2.0, 0.0, -SLED_H / 2 + 6, SLED_H / 2 - 6, SLED_T - 0.01, SLED_T + 4.0))
+    # stiffening rib between the two boards
+    adds.append(box(-SLED_W / 2 + 8, SLED_W / 2 - 8, 0.0, 2.0, SLED_T - 0.01, SLED_T + 4.0))
     sled = union(adds)
     cuts = []
     for x, y in POST_PTS:
         cuts.append(cyl(x, y, -1, SLED_T + 1, 3.4, seg=24))
-    # zip-tie slots: across the ESP32 and amp boards, and a free area for a PoE splitter
-    for y in (-22.0, 22.0):
-        for x in (ex0 - 4.2, ex0 + ew + 2.2):
-            cuts.append(box(x, x + 2.0, y - 2.5, y + 2.5, -1, SLED_T + 1))
-    for y in (-30.0, -8.0):
-        for x in (-40.0, -12.0):
-            cuts.append(box(x, x + 2.0, y - 2.5, y + 2.5, -1, SLED_T + 1))
-    # wire pass-through windows (speaker, buttons, mic)
-    cuts.append(rrect(-22.0, 39.0, 20.0, 5.0, 2.0, -1, SLED_T + 1))
+    # zip-tie slots across the ESP32 board, and a strain-relief pair for the Ethernet cable
+    for x in (ESP_X0 + 22.0, ESP_X0 + 50.0):
+        for y in (ESP_Y0 - 4.6, ESP_Y0 + ew + 2.6):
+            cuts.append(box(x - 2.5, x + 2.5, y, y + 2.0, -1, SLED_T + 1))
+    for y in (6.0, 33.5):
+        cuts.append(box(-44.5, -42.5, y - 2.5, y + 2.5, -1, SLED_T + 1))
+    # wire pass-through windows (speaker, buttons, mic, LED)
     cuts.append(rrect(-22.0, -39.0, 20.0, 5.0, 2.0, -1, SLED_T + 1))
-    cuts.append(rrect(3.5, 0.0, 5.0, 24.0, 2.0, -1, SLED_T + 1))
+    cuts.append(rrect(30.0, -20.0, 5.0, 22.0, 2.0, -1, SLED_T + 1))
+    cuts.append(rrect(8.0, -20.0, 5.0, 22.0, 2.0, -1, SLED_T + 1))
     return sled - union(cuts)
 
 
@@ -347,10 +365,14 @@ def dummy_button_board():
 
 
 def dummy_esp():
-    ew, el = ESP_BOARD
-    b = box(8.0, 8.0 + ew, -el / 2, el / 2, SLED_T + 3.0, SLED_T + 4.6)
-    b = union([b, box(8.0 + ew / 2 - 9, 8.0 + ew / 2 + 9, -el / 2 + 2, -el / 2 + 27, SLED_T + 4.6, SLED_T + 7.8)])
-    return b.mirror([0, 0, 1]).translate([0, 0, SLED_Z])
+    """ESP32-S3-ETH board with its RJ45 jack and PoE module, plus an unbooted plug."""
+    el, ew = ESP_BOARD
+    zb = SLED_T + ESP_LEDGE_H
+    board = box(ESP_X0, ESP_X0 + el, ESP_Y0, ESP_Y0 + ew, zb, zb + 1.6)
+    jack = box(ESP_X0, ESP_X0 + 21.0, ESP_Y0 + 2.5, ESP_Y0 + ew - 2.5, zb + 1.6, zb + 1.6 + ESP_STACK_H)
+    poe = box(ESP_X0 + 26.0, ESP_X0 + 60.0, ESP_Y0 + 1.5, ESP_Y0 + ew - 1.5, zb + 1.6, zb + 1.6 + ESP_STACK_H - 2.0)
+    plug = box(ESP_X0 - RJ45_PLUG_LEN, ESP_X0 + 0.01, ESP_Y0 + 4.5, ESP_Y0 + ew - 4.5, zb + 3.0, zb + 1.6 + ESP_STACK_H - 2.5)
+    return union([board, jack, poe, plug]).mirror([0, 0, 1]).translate([0, 0, SLED_Z])
 
 
 # ------------------------------------------------------------------ export
@@ -385,6 +407,7 @@ if __name__ == "__main__":
         "driver^carrier": vol(drv, car), "driver^sled": vol(drv, sled), "driver^ring": vol(drv, ring),
         "ring^carrier": vol(ring, car), "board^carrier": vol(board, car), "board^caps": vol(board, capu),
         "board^driver": vol(board, drv), "board^ring": vol(board, ring), "esp^box": vol(esp, bx),
+        "esp^sled": vol(esp, sled), "esp^carrier": vol(esp, car),
         "switches^carrier": vol(sws, car),
     }
 
@@ -411,7 +434,7 @@ if __name__ == "__main__":
     info = dict(
         cover_mm=[round(COVER_W, 1), round(COVER_H, 1), COVER_T + CAR_T],
         carrier_mm=[CAR_W, CAR_H, CAR_T],
-        depth_behind_wall_mm=round(-SLED_Z - CAR_T + SLED_T + 3.0 + 1.6 + 9.0, 1),
+        depth_behind_wall_mm=round(-SLED_Z - CAR_T + SLED_T + ESP_LEDGE_H + 1.6 + ESP_STACK_H, 1),
         box_depth_mm=BOX_DEPTH,
         board_standoff_len=round(STANDOFF_LEN, 2), switch_top_z=round(SWITCH_TOP, 2),
         watertight={k: v.is_watertight for k, v in dict(carrier=tc, cover=tv, sled=ts, ring=tr, caps=tcap, box=tb).items()},

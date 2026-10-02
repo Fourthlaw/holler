@@ -90,15 +90,15 @@ label(img, items, "Carrier from behind").save("renders/render_carrier_back.png")
 
 # 4. assembled in the box, top of the box cut away
 import manifold3d as m3
-bx = W.build_box() ^ W.box(-200, 200, -200, 4, -200, 200)
+bx = W.build_box() ^ W.box(-200, 200, -200, -8, -200, 200)
 tb = W.to_trimesh(bx); tb.apply_transform(A)
 parts = [(tb, BOX), (load("carrier"), CAR), (load("ring"), RING), (load("driver"), DRV), (load("board"), PCB),
          (load("switches"), DRV), (load("sled"), SLED), (load("esp"), PCB), (load("cover"), PLATE), (load("caps"), CAP)]
 img, ctx = render(parts, elev=38, azim=200, size=(1700, 1250), light=(0.3, 0.6, 0.7))
 items = place(img, [
-    (P(ctx, 22, 20, W.SLED_Z - 8), "ESP32 on the sled"),
-    (P(ctx, -30, 30, W.SLED_Z - 2.4), "sled"),
-    (P(ctx, -24, 23, W.SLED_Z - 6), "amp tray"),
+    (P(ctx, 12, 24, W.SLED_Z - W.SLED_T - 18), "PoE ESP32 board"),
+    (P(ctx, W.ESP_X0 - 8, 22, W.SLED_Z - W.SLED_T - 12), "Ethernet plug (power + data)"),
+    (P(ctx, 40, 40, W.SLED_Z - 1), "sled"),
     (P(ctx, 30, 36.5, W.BOARD_Z - 0.8), "button board"),
     (P(ctx, 44.5, 40.2, -22), "sled post"),
     (P(ctx, 46, -10, -72), "box (top half cut away)"),

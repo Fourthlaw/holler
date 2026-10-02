@@ -246,7 +246,7 @@ Network share or local disk (music files) -> MPD on the Pi 5 -> FIFO pipe -> Sna
 | Type | Section | What it is | Status |
 |---|---|---|---|
 | Tabletop | 3.4 | Printed desktop speaker, USB-C, battery backup, woofer and tweeter | Reference build. Enclosure designed, not yet printed |
-| In-wall | 3.1 | Mono speaker and mic behind a printed plate in a double-gang box, PoE | Optional. Parts modeled, not yet printed |
+| In-wall | 3.1 | Mono speaker and mic behind a printed plate in a double-gang box. One Ethernet cable carries power (PoE) and data | Optional. Parts modeled, not yet printed |
 | HiFi | 3.2, 3.3 | Raspberry Pi feeding stereo speakers or an existing receiver | Optional |
 
 The tabletop endpoint is the one being built first. The in-wall endpoint is kept in the design as an option for anyone who wants speakers in the walls. Both use the same electronics, mic privacy circuit, buttons, and firmware, which are described once in 3.1.1 and 3.1.2 and referred to from the tabletop section.
@@ -263,8 +263,9 @@ The tabletop endpoint is the one being built first. The in-wall endpoint is kept
 |---|---|---|
 | Speaker | One 2 in. full-range driver, sealed in the box | 2.5 in. woofer and dome tweeter, transmission line |
 | Amp | One MAX98357A | Two MAX98357A, software crossover |
-| Power | PoE preferred | USB-C with 18650 backup |
-| Network | Ethernet preferred | Wi-Fi |
+| Power | PoE only, over the Ethernet cable | USB-C with 18650 backup |
+| Network | Wired Ethernet only (the same cable) | Wi-Fi |
+| MCU board | ESP32-S3 with Ethernet and a PoE module | ESP32-S3-DevKitC-1 |
 | Enclosure | Double-gang box, printed plate and bracket | Printed case |
 | Install | Low-voltage wiring in the wall | None |
 
@@ -272,9 +273,9 @@ The tabletop endpoint is the one being built first. The in-wall endpoint is kept
 
 **MCU**
 
-- ESP32-S3 with PSRAM (for example ESP32-S3-WROOM-1 N8R8).
-- Preferred: an ESP32-S3 board with onboard Ethernet and PoE (Waveshare and LilyGO both make these). See Power.
-- The S3 has two I2S peripherals: I2S0 drives the amplifier, I2S1 reads the microphone.
+- ESP32-S3 with PSRAM. The S3 has two I2S peripherals: I2S0 drives the amplifier, I2S1 reads the microphone.
+- In-wall: an ESP32-S3 board with onboard Ethernet and a PoE module. The model is built around the Waveshare ESP32-S3-ETH in its PoE version (72.8 x 21 mm, W5500 Ethernet, 802.3af PoE module, 16 MB flash, 8 MB PSRAM). Its Ethernet chip uses GPIO 9 to 14 internally, which leaves enough pins for the amp, mic, buttons, and LED.
+- Tabletop: ESP32-S3-DevKitC-1 on Wi-Fi (3.4.3).
 
 **Amplifier**
 
@@ -370,18 +371,14 @@ Rule for all endpoints: no LED points at the room. The light is a soft glow seen
 - **Per room:** green can be turned off in firmware for any room. The red glow can be dimmed further with its resistor, or left unpopulated in a room that should be fully dark, at the cost of losing the at-a-glance proof that the mic is off.
 - Open question: in a bedroom where the mic stays muted, the red glow is on all night, however dim. A hardware-only alternative is a timed glow that lights for about 10 s after MIC MUTE or TALK is pressed (an RC timer on the latch output, no firmware involved).
 
-**Power**
+**Power (in-wall): PoE over the Ethernet cable, and nothing else**
 
-Preferred: PoE.
-
-- 802.3af PoE to each endpoint, either on an ESP32-S3 board with integrated PoE or through a PoE splitter to 5 V.
-- Benefits: one Class 2 cable per room, wired sync and control, central UPS backup, no line voltage in the wall at the endpoint.
-- Budget: ESP32-S3 Wi-Fi/Ethernet peaks plus a 3 W amp into 4 ohms. Plan for 5 V at 2 A at the endpoint. 802.3af covers this.
-
-Alternate: local 5 V supply.
-
-- Isolated 120 V to 5 V, 2 A minimum supply in a separate, accessible box.
-- Line-voltage and Class 2 wiring are not in the same box unless separated by a listed barrier.
+- Each in-wall endpoint is powered and connected by one Ethernet cable from a PoE switch (802.3af). There is no other power option for the in-wall endpoint: no local supply, no line voltage in or near the box, and no Wi-Fi.
+- Why PoE only: the cable is low-voltage (Class 2), so it can run in the wall and into the box without the code problems of a 120 V supply. It gives wired sync and control, and one UPS on the switch backs up every in-wall endpoint.
+- Budget: the ESP32-S3 with Ethernet plus a 3 W amp into 4 ohms. Plan for 5 V at 2 A at the endpoint, about 10 W. 802.3af provides up to about 13 W at the device, so it covers this.
+- The PoE module on the board is the only supply. Do not plug in USB while PoE is connected; on the Waveshare board the two are not isolated from each other. For bench work, use one or the other.
+- What it needs: a Cat5e or Cat6 run to each box and a PoE switch (or a PoE injector per run). This is the reason the in-wall endpoint suits new construction or a remodel.
+- The tabletop endpoint is the answer where pulling cable is not practical (3.4).
 
 **Mechanical**
 
@@ -393,12 +390,14 @@ The model is in `hardware/inwall/` (`inwall_endpoint.py`). Everything mounts to 
 | Printed part | What it does |
 |---|---|
 | Carrier | 112 x 108 x 3 mm plate that screws to the box's four device holes with 6-32 flat-head screws. Its back carries the driver seat and clamp bosses, the five button guide collars, button board standoffs, a mic pocket, and four posts for the sled. A groove in its front face holds the status LED behind the cloth |
-| Sled | 94 x 87 mm plate that screws to the four posts, 35 mm behind the carrier, clear of the driver. Trays for the ESP32 and amp, zip-tie slots (including a free area for a PoE splitter), and wire pass-throughs |
+| Sled | 94 x 87 mm plate that screws to the four posts, 35 mm behind the carrier, clear of the driver. A tray for the PoE ESP32 board with its RJ45 jack at the edge, a tray for the amp, zip-tie slots (including a pair to tie down the Ethernet cable), and wire pass-throughs |
 | Cover | 117 x 113 mm wall plate, close to a standard double-gang plate. Held on by four pairs of 6 x 2 mm magnets, so no screws show. Speaker cloth is glued behind its 48 mm opening. Openings for the five caps and a mic port. No light window: the status glow shows through the speaker cloth |
 | Button caps | Same moving-cap stack as the tabletop: guide collar, retaining flange, stem on a 6x6 tact switch. TALK is 32 x 16 mm; the other four are 14 x 11 mm |
 | Driver ring | Clamps the 2 in. driver into its seat with four M2 screws |
 
-- **Stack depth:** about 51 mm behind the wall surface to the back of the ESP32, in a box about 74 mm deep inside. That leaves about 23 mm for cable.
+- **Stack depth:** about 56 mm behind the wall surface to the top of the RJ45 jack and PoE module, in a box about 74 mm deep inside. That leaves about 18 mm behind the board.
+- **Ethernet cable:** the plug enters the jack sideways, in the plane of the sled, and the model allows 12 mm for it. Terminate the in-wall cable with a plain unbooted plug, or use a short slim patch lead from a keystone jack, and tie the cable to the sled so the jack carries no strain.
+- **ESP32 board:** use the version without header pins, or wire straight to the pads. The tray holds the board at its two ends so the pad rows stay clear.
 - **Button board:** perfboard about 33 x 73 mm on four 10.25 mm standoffs.
 - **Status LED:** lies in a 3.2 x 1.8 mm groove in the carrier's front face at the top of the speaker opening, with a wire hole through the carrier. The cover and the cloth sit over it.
 - **Mic:** a round INMP441 breakout drops into the pocket and is held with a dab of glue. A foam ring between the carrier and the cover seals the port to the room.
@@ -407,7 +406,7 @@ The model is in `hardware/inwall/` (`inwall_endpoint.py`). Everything mounts to 
 
 Hardware: 4 x 6-32 flat-head device screws (the box usually comes with them), 4 x M3 heat-set inserts and M3 x 6 screws for the sled, 4 x M2 heat-set inserts and M2 x 6 screws for the driver ring, 4 x M2 self-tapping screws for the button board, 8 x 6 x 2 mm magnets, 5 tact switches.
 
-Verify against parts in hand: box interior size and the depth of its screw bosses, driver flange and basket size, INMP441 board diameter and port position, tact switch height, and the ESP32 board footprint (the tray is sized for a DevKitC-1; a PoE board will need its own size).
+Verify against parts in hand: box interior size and the depth of its screw bosses, driver flange and basket size, INMP441 board diameter and port position, tact switch height, the height of the PoE board's RJ45 jack and PoE module (the model assumes 14 mm), and how far the Ethernet plug sticks out.
 
 #### 3.1.2 Firmware
 
@@ -500,7 +499,7 @@ All volume values map to gain on a dB curve (for example 0 to 100 maps to -60 dB
 **Tasks**
 
 - **Network task**
-  - Ethernet (preferred) or Wi-Fi with reconnect.
+  - In-wall: wired Ethernet (W5500 over SPI). Tabletop: Wi-Fi with reconnect.
   - Connects to Snapserver, the intercom multicast group, and the MQTT broker.
 
 - **Audio mix and playback task**

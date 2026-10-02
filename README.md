@@ -57,7 +57,7 @@ flowchart LR
 | Controller | Raspberry Pi 5 running Snapcast for music, the intercom server, MQTT, and a local web app |
 | Music library | Plex mode: Plex Media Server with a headless Plexamp player on the Pi, controlled from Plexamp. Share mode: a network share played by MPD on the Pi, controlled from a web page or any MPD app. Either one feeds Snapcast |
 | Tabletop endpoint | ESP32-S3, 2.5 in. woofer and dome tweeter in a folded transmission line, USB-C power, battery backup. This is the reference build |
-| In-wall endpoint (optional) | ESP32-S3, 2 in. speaker, and mic behind a printed plate in a double-gang box, PoE preferred. Same electronics and firmware. Parts are modeled, not yet printed |
+| In-wall endpoint (optional) | ESP32-S3, 2 in. speaker, and mic behind a printed plate in a double-gang box. One Ethernet cable brings power (PoE) and data; there is no other power option. Same audio electronics and firmware. Parts are modeled, not yet printed |
 | Phone apps | Push-to-talk apps for iPhone (WebRTC and Apple's PushToTalk framework) and Android (WebRTC and a foreground service) |
 | Rendezvous server (default) | A small hosted server that helps the phone and the house find each other and punch through to each other. It relays encrypted audio and never holds the keys |
 | Direct mode (optional) | No hosted server. The router forwards two ports to the Pi's remote gateway. Simpler and free, but it exposes a service at home to the internet |

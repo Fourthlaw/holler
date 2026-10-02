@@ -14,7 +14,7 @@ The electronics, mic privacy circuit, buttons, and firmware are the same as the 
 
 - A standard double-gang new-work box (Carlon B232A class) used as a sealed speaker enclosure
 - One 2 in. full-range driver (Dayton Audio CE52N-4) and one MAX98357A amp
-- ESP32-S3, with Ethernet and PoE preferred so one low-voltage cable powers and connects it
+- An ESP32-S3 board with Ethernet and a PoE module (Waveshare ESP32-S3-ETH, PoE version). One Ethernet cable from a PoE switch powers and connects it. There is no other power option
 - INMP441 mic behind a gasketed port
 - Five moving button caps: TALK, VOL -, VOL +, MIC MUTE, BACKGROUND
 - A cover held on by magnets, so no screws show
@@ -51,7 +51,7 @@ PETG, no supports. The carrier's sled posts are 35 mm tall and 7 mm across; slow
 2. Seat the driver in the carrier and clamp it with the ring.
 3. Drop the five caps into their collars from the back, then screw the button board onto its standoffs. The board holds the caps in.
 4. Seat the mic in its pocket, port toward the room. Lay the status LED in the groove at the top of the speaker opening, facing the centre, with its wires through the hole.
-5. Fit the ESP32 and amp to the sled, wire everything, and screw the sled to the posts.
+5. Fit the PoE ESP32 board and the amp to the sled, wire everything, and screw the sled to the posts. Plug in the Ethernet cable and tie it to the sled.
 6. Screw the carrier to the box with the four device screws, with foam tape between the carrier and the wall.
 7. Glue cloth behind the cover's speaker opening, put a foam ring around the mic port, and set the cover on.
 
@@ -67,9 +67,10 @@ python3 render_views.py        # writes preview images to renders/
 
 The script reports the overlap between every pair of parts, the dummy components, and the box. All should be zero.
 
-Dimensions marked `VERIFY` are estimates. The ones that matter most: the box's interior size and how far its screw bosses reach in, the driver's flange and basket, the mic board's diameter and port position, and the ESP32 board footprint. The tray fits a DevKitC-1; a PoE board will need `ESP_BOARD` changed.
+Dimensions marked `VERIFY` are estimates. The ones that matter most: the box's interior size and how far its screw bosses reach in, the driver's flange and basket, the mic board's diameter and port position, the height of the PoE board's RJ45 jack and PoE module, and how far the Ethernet plug sticks out. For a different PoE board, change `ESP_BOARD`.
 
 ## Before installing in a wall
 
-- Use PoE or a listed low-voltage supply. Do not put line voltage and the endpoint's wiring in the same box without a listed barrier.
+- Power is PoE only. Never bring line voltage into this box.
+- Run the Ethernet cable from a PoE switch or injector. Do not connect USB while PoE is plugged in.
 - Use in-wall-rated cable, and follow local electrical code.
