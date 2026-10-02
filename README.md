@@ -56,7 +56,7 @@ flowchart LR
 | Controller | Raspberry Pi 5 running Snapcast for music, the intercom server, MQTT, and a local web app |
 | Music library | Plex mode: Plex Media Server with a headless Plexamp player on the Pi, controlled from Plexamp. Share mode: a network share played by MPD on the Pi, controlled from a web page or any MPD app. Either one feeds Snapcast |
 | Tabletop endpoint | ESP32-S3, 2.5 in. woofer and dome tweeter in a folded transmission line, USB-C power, battery backup. This is the reference build |
-| In-wall endpoint (optional) | ESP32-S3, 2 in. speaker, and mic behind a printed plate in a double-gang box, PoE preferred. Same electronics and firmware; the plate is not modeled yet |
+| In-wall endpoint (optional) | ESP32-S3, 2 in. speaker, and mic behind a printed plate in a double-gang box, PoE preferred. Same electronics and firmware. Parts are modeled, not yet printed |
 | Phone apps | Push-to-talk apps for iPhone (WebRTC and Apple's PushToTalk framework) and Android (WebRTC and a foreground service) |
 | Rendezvous server (default) | A small hosted server that helps the phone and the house find each other and punch through to each other. It relays encrypted audio and never holds the keys |
 | Direct mode (optional) | No hosted server. The router forwards two ports to the Pi's remote gateway. Simpler and free, but it exposes a service at home to the internet |
@@ -102,7 +102,7 @@ Dimensions marked `VERIFY` in the script are estimates. Check them against the p
 |---|---|---|
 | [`docs/`](docs/) | System design | Current |
 | [`hardware/tabletop/`](hardware/tabletop/) | Tabletop enclosure: generator, STLs, renders | First design, not yet printed |
-| [`hardware/inwall/`](hardware/inwall/) | In-wall endpoint (optional) | Described, not modeled |
+| [`hardware/inwall/`](hardware/inwall/) | In-wall endpoint (optional): generator, STLs, renders | First design, not yet printed |
 | [`firmware/endpoint/`](firmware/endpoint/) | ESP32-S3 firmware for both endpoint types | Not started |
 | [`controller/`](controller/) | Pi 5 services | Not started |
 | [`remote/`](remote/) | Remote intercom: Pi gateway, rendezvous server, iPhone and Android apps | Not started |
@@ -115,7 +115,7 @@ Dimensions marked `VERIFY` in the script are estimates. Check them against the p
 - [ ] Mic privacy board (latch, load switches, buffer)
 - [ ] Endpoint firmware: music playback, then intercom, then audio tuning and background mode
 - [ ] Controller: Snapcast, Plexamp or MPD, intercom server, web app
-- [ ] In-wall plate with five buttons (optional)
+- [x] In-wall endpoint parts, first design (optional)
 - [ ] Remote intercom on the local network (web page)
 - [ ] Rendezvous server and iPhone app
 - [ ] Android app

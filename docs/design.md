@@ -245,7 +245,7 @@ Network share or local disk (music files) -> MPD on the Pi 5 -> FIFO pipe -> Sna
 | Type | Section | What it is | Status |
 |---|---|---|---|
 | Tabletop | 3.4 | Printed desktop speaker, USB-C, battery backup, woofer and tweeter | Reference build. Enclosure designed, not yet printed |
-| In-wall | 3.1 | Mono speaker and mic behind a printed plate in a double-gang box, PoE | Optional. Designed on paper only; no plate or bracket model yet |
+| In-wall | 3.1 | Mono speaker and mic behind a printed plate in a double-gang box, PoE | Optional. Parts modeled, not yet printed |
 | HiFi | 3.2, 3.3 | Raspberry Pi feeding stereo speakers or an existing receiver | Optional |
 
 The tabletop endpoint is the one being built first. The in-wall endpoint is kept in the design as an option for anyone who wants speakers in the walls. Both use the same electronics, mic privacy circuit, buttons, and firmware, which are described once in 3.1.1 and 3.1.2 and referred to from the tabletop section.
@@ -254,7 +254,7 @@ The tabletop endpoint is the one being built first. The in-wall endpoint is kept
 
 **Use case:** rooms where a speaker in the wall is wanted instead of a box on a table.
 
-**Status:** an option, not part of the reference build. The electronics and firmware below are shared with the tabletop endpoint and are current. The in-wall mechanical parts (plate with five button caps, speaker bracket) are described but not yet modeled; see `hardware/inwall/`.
+**Status:** an option, not part of the reference build. The electronics and firmware below are shared with the tabletop endpoint and are current. The in-wall mechanical parts are modeled in `hardware/inwall/` (carrier, electronics sled, cover, button caps, driver ring) but have not been printed or fitted to a real box.
 
 **Differences from the tabletop endpoint**
 
@@ -345,7 +345,7 @@ Plate design:
 - Each button is a separate printed cap that moves in an opening in the plate. Nothing flexes; the plate stays rigid.
 - The cap slides in a short guide collar on the back of the plate (0.3 mm clearance per side), is kept from falling out by a flange under the collar, and has a stem that rests on its tact switch. The switch provides the return spring and the click.
 - Caps are loaded from behind before the switch board goes on, so they are captive and there are no visible fasteners.
-- Layout, left to right: `VOL_DOWN`, `PTT`, `VOL_UP`, with `MIC_MUTE` and `BACKGROUND` as a pair set apart from the other three. The in-wall plate layout needs a revision to fit the fourth and fifth buttons.
+- Layout: the speaker fills the left gang. The right gang holds the buttons in three rows, top to bottom: TALK, then VOL - and VOL +, then MIC MUTE and BACKGROUND, with the mic port and status light below.
 - Touch marks engraved in the cap tops: a dish on PTT, minus and plus on volume, a slashed ring on MIC MUTE, three fading bars on BACKGROUND.
 - Print plate and caps in PETG. Caps print top-down so the touch surface is the smooth bed side.
 
@@ -378,16 +378,28 @@ Alternate: local 5 V supply.
 
 **Mechanical**
 
-- Box: double-gang new-work box, about 4 x 4 in., 2.5 to 3.5 in. deep, about 34 cu. in.
-- The box doubles as a sealed speaker enclosure. Seal the cable entry so the enclosure stays closed.
-- 3D-printed parts:
-  - **Speaker bracket:** holds the driver, aligns it with the grille, routes wires, and provides standoffs for the MCU and amp boards.
-  - **Wall plate:**
-    - Round speaker grille sized to the chosen driver.
-    - Mic port hole aligned with the gasketed INMP441.
-    - Five button openings with guide collars for the moving caps (TALK, VOL -, VOL +, MIC MUTE, BACKGROUND).
-    - Optional diffused LED window.
-    - Optional service door for USB access during flashing and debug.
+The model is in `hardware/inwall/` (`inwall_endpoint.py`). Everything mounts to one printed carrier, so the whole endpoint can be built and tested on the bench, then screwed to the box as a unit.
+
+- **Box:** a standard double-gang new-work box (Carlon B232A class: 4 in. wide, 3-3/4 in. tall, 3 in. deep). A reference model of the box is included for fit checks; it is not printed.
+- The box doubles as the sealed speaker enclosure. Seal the cable entry, and put foam tape between the carrier and the wall so the enclosure stays closed.
+
+| Printed part | What it does |
+|---|---|
+| Carrier | 112 x 108 x 3 mm plate that screws to the box's four device holes with 6-32 flat-head screws. Its back carries the driver seat and clamp bosses, the five button guide collars, button board standoffs, a mic pocket, a light pipe, and four posts for the sled |
+| Sled | 94 x 87 mm plate that screws to the four posts, 35 mm behind the carrier, clear of the driver. Trays for the ESP32 and amp, zip-tie slots (including a free area for a PoE splitter), and wire pass-throughs |
+| Cover | 117 x 113 mm wall plate, close to a standard double-gang plate. Held on by four pairs of 6 x 2 mm magnets, so no screws show. Speaker cloth is glued behind its 48 mm opening. Openings for the five caps, a mic port, and a thin-skin window for the status light |
+| Button caps | Same moving-cap stack as the tabletop: guide collar, retaining flange, stem on a 6x6 tact switch. TALK is 32 x 16 mm; the other four are 14 x 11 mm |
+| Driver ring | Clamps the 2 in. driver into its seat with four M2 screws |
+
+- **Stack depth:** about 51 mm behind the wall surface to the back of the ESP32, in a box about 74 mm deep inside. That leaves about 23 mm for cable.
+- **Button board:** perfboard about 33 x 73 mm on four 10.25 mm standoffs. It also carries the status LED, which shines through the light pipe.
+- **Mic:** a round INMP441 breakout drops into the pocket and is held with a dab of glue. A foam ring between the carrier and the cover seals the port to the room.
+- **Fit checks:** the generator checks every printed part and the driver, button board, and ESP32 against each other and against the box, and reports any overlap. The current model has none.
+- **Service:** pull the cover off (fingernail notch at the bottom), remove four screws, and the whole endpoint comes out on its wires.
+
+Hardware: 4 x 6-32 flat-head device screws (the box usually comes with them), 4 x M3 heat-set inserts and M3 x 6 screws for the sled, 4 x M2 heat-set inserts and M2 x 6 screws for the driver ring, 4 x M2 self-tapping screws for the button board, 8 x 6 x 2 mm magnets, 5 tact switches.
+
+Verify against parts in hand: box interior size and the depth of its screw bosses, driver flange and basket size, INMP441 board diameter and port position, tact switch height, and the ESP32 board footprint (the tray is sized for a DevKitC-1; a PoE board will need its own size).
 
 #### 3.1.2 Firmware
 

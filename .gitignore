@@ -4,7 +4,7 @@ __pycache__/
 .venv/
 
 # Generated assembly meshes used only for previews
-hardware/tabletop/_asm_*.stl
+hardware/*/_asm_*.stl
 
 # Editors and OS
 .DS_Store
