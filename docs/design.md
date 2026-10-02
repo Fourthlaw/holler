@@ -715,10 +715,10 @@ The 10 to 15 minute requirement is met with a large margin. A smaller LiPo pouch
 
 | Part | Print orientation | Supports | Notes |
 |---|---|---|---|
-| `base.stl` | Floor on the bed, open side up | None | Line walls, separator wall, trays, rails, bosses all print vertically. Grille holes are diamond-shaped so they self-support. |
+| `base.stl` | Floor on the bed, open side up | None | Line walls, separator wall, trays, rails, and bosses all print vertically. The front recess, driver cutouts, and mouth slots are open shapes that need no support. |
 | `lid.stl` | Top face on the bed | None | Grooves, lip, standoffs, guide collars, and the six 75 mm pillars point up. |
 | `button_caps.stl` | Cap tops on the bed (all five on one plate) | None | Touch marks print on the smooth bed side. The flange underside is a 45 degree chamfer, so it needs no support. |
-| `grille_ring.stl` | Front face on the bed | None | Magnet pockets and the cloth land face up. |
+| `grille_ring.stl` | Front face on the bed | None | Magnet pockets, the cloth land, and the hooded light channel face up. |
 
 All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest; leave the bed's default margins and center it.
 
@@ -737,7 +737,9 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 |---|---|---|
 | M3 heat-set insert, 4.0 mm bore, 6 mm deep | 6 | Ends of the lid pillars |
 | M3 x 8 socket head screw | 6 | Up through the bottom into the pillars (counterbored, heads sit below the surface) |
+| Dayton Audio CE70PR-4 woofer | 1 | Front recess |
 | Dayton Audio ND16FA-6 tweeter | 1 | Beside the woofer |
+| 3 mm bicolor LED (red/green) | 1 | Status glow, in the recess floor above the tweeter |
 | MAX98357A breakout (second) | 1 | Tweeter channel |
 | 10 to 22 uF film capacitor | 1 | In series with the tweeter |
 | M4 heat-set insert, 5.6 mm bore, 6 mm deep | 4 | Driver mounting bosses behind the baffle |
@@ -758,7 +760,7 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 3. Run the speaker leads from the bay through the pass-through and out the driver cutout. Solder them to the woofer, put gasket tape on the frame, and screw it in from the front. Wire the tweeter (with its series capacitor) and seat it in its counterbore with silicone or VHB.
 4. Seal the pass-through.
 5. Add polyfill to the closed end and leg 1.
-6. Fit the amp, ESP32, charger, battery holder, USB-C breakout, mic module, and LED.
+6. Fit the amps, ESP32, charger, battery holder, USB-C breakout, and mic module. Push the status LED into its hole above the tweeter from inside and seal it with glue.
 7. Turn the lid over, drop the five caps into their openings, and screw the button board onto the standoffs. The board holds the caps in.
 8. Run silicone or foam tape in the lid grooves, set the lid on (the pillars drop into the floor sockets), flip the unit, and drive the six screws up through the bottom.
 9. Stick the four bumper feet in the foot rings, and press the grille ring into the recess.
@@ -801,8 +803,9 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 | Mosquitto | Pi 5 | Authenticated endpoint control |
 | Web app (Flask/FastAPI) | Pi 5 | UI, schedules, API |
 | Scheduler | Pi 5 | Alarms and announcements |
-| Endpoint firmware | ESP32-S3 (tabletop and in-wall) | Playback, mix, duck, PTT capture, controls |
-| Same firmware, plus battery/USB-present reporting | ESP32-S3 (tabletop) | As above, on Wi-Fi with battery backup |
+| Endpoint firmware | ESP32-S3 (tabletop and in-wall) | Playback, mix, duck, background mode, PTT capture, controls |
+| Same firmware, tabletop build | ESP32-S3-DevKitC-1 | As above, on Wi-Fi, with battery and USB-present reporting and the two-way crossover |
+| Same firmware, in-wall build | ESP32-S3 with Ethernet and PoE | As above, on wired Ethernet, single driver |
 | Snapclient + intercom client | HiFi endpoints | Playback and optional paging |
 | Remote intercom gateway (Pion or aiortc) | Pi 5 | WebRTC to phones, bridged to the house intercom (2.3) |
 | Rendezvous server (signaling, coturn, push) | Cloud VPS, rendezvous mode only | Connects phones and the Pi; sees only encrypted media (2.3) |
@@ -815,4 +818,5 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 - Home Assistant integration through MQTT.
 - Doorbell and alert integration (play chime and TTS to all rooms).
 - Per-room source selection (different music in different zones).
-- RGB LED status for additional states.
+- A timed mic-mute glow for bedrooms (hardware timer; see the open question under Status light in 3.1.1).
+- A hidden press zone cover for the in-wall endpoint, as an alternative to moving caps.

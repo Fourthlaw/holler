@@ -4,7 +4,7 @@
 
 ![Tabletop endpoint with the magnetic grille removed](hardware/tabletop/renders/render_front_exploded.png)
 
-> **Status: design stage.** The system design and the first printable enclosure are here. No firmware, controller software, or phone app has been written yet, and the enclosure has not been printed or tested. Expect things to change.
+> **Status: design stage.** The system design and first printable designs for two speakers (tabletop and in-wall) are here. No firmware, controller software, or phone app has been written yet, and nothing has been printed or tested. Expect things to change.
 
 The name comes from what it replaces, hollering across the house, and from "hoot-n-holler," the old term for an always-open intercom line.
 
@@ -75,6 +75,8 @@ The full design, including the mic privacy circuit, the audio processing chain, 
 - A folded transmission line about 730 mm long behind the woofer, tuned to about 115 Hz.
 - Five real buttons on top: TALK, volume down, volume up, mic mute, and background mode. No screws on top; they come in from the bottom.
 - A cloth grille on a printed ring that snaps on with magnets.
+- The status glow sits behind the cloth. Nothing lit points at the room.
+- More detail, the hardware list, and assembly steps are in [`hardware/tabletop/`](hardware/tabletop/).
 
 ### Print it or change it
 
@@ -96,6 +98,17 @@ python3 render_plan.py           # writes the line layout to renders/
 ```
 
 Dimensions marked `VERIFY` in the script are estimates. Check them against the parts in hand before printing.
+
+## The in-wall option
+
+![In-wall endpoint, exploded](hardware/inwall/renders/render_exploded.png)
+
+For new construction or a remodel, the same electronics fit a standard double-gang electrical box.
+
+- One Ethernet cable from a PoE switch brings power and data. That is the only power option, so no line voltage comes near the box.
+- Everything mounts on one printed carrier that screws to the box's standard device holes. A cover snaps on with magnets, so no screws show.
+- One 2 in. driver, the same five buttons, and the same hardware mic gating.
+- Parts, hardware list, and assembly steps are in [`hardware/inwall/`](hardware/inwall/).
 
 ## What is in this repo
 
