@@ -1,4 +1,4 @@
-# Endpoint firmware (ESP32-S3)
+# Holler endpoint firmware (ESP32-S3)
 
 Not started. One firmware for the in-wall and tabletop endpoints, built with ESP-IDF.
 

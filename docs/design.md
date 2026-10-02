@@ -1,4 +1,6 @@
-# Whole-Home Intercom + Music System Design
+# Holler: System Design
+
+Whole-home synchronized music and push-to-talk intercom.
 
 ## 1. Goals
 
@@ -69,7 +71,7 @@
 |---|---|---|
 | Rendezvous server | Small cloud VPS (smallest tier, about $5 a month) | Relays setup messages between the Pi and phones, runs a TURN relay (coturn) for when a direct path fails, and sends Apple push notifications to wake phones |
 | Remote intercom gateway | Pi 5 | Holds the outbound connection to the rendezvous server, terminates the phone's WebRTC audio, and bridges it to and from the house intercom |
-| Intercom app | iPhone | Push-to-talk app built on Apple's PushToTalk framework (iOS 16 and later) and WebRTC |
+| Holler app | iPhone | Push-to-talk app built on Apple's PushToTalk framework (iOS 16 and later) and WebRTC |
 
 **Connection model**
 
@@ -710,7 +712,7 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 | Snapclient + intercom client | HiFi endpoints | Playback and optional paging |
 | Remote intercom gateway (Pion or aiortc) | Pi 5 | WebRTC to phones, bridged to the house intercom (2.3) |
 | Rendezvous server (signaling, coturn, push) | Cloud VPS | Connects phones and the Pi; sees only encrypted media (2.3) |
-| Intercom app (Swift, WebRTC, PushToTalk) | iPhone | Remote paging and hearing pages (2.3) |
+| Holler app (Swift, WebRTC, PushToTalk) | iPhone | Remote paging and hearing pages (2.3) |
 
 ## 7. Future extensions
 

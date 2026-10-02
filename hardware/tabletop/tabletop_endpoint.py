@@ -1,5 +1,5 @@
 """
-Tabletop intercom/music endpoint enclosure - parametric generator.
+Holler tabletop endpoint enclosure - parametric generator.
 
 Parts (all print on a Bambu Lab A1, 256 x 256 x 256 mm):
   base.stl         tub with folded transmission line + electronics bay (print open side up)

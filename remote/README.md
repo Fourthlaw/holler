@@ -1,4 +1,4 @@
-# Remote intercom
+# Holler remote intercom
 
 Not started. See docs/design.md, section 2.3.
 

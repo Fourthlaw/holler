@@ -1,10 +1,12 @@
-# Home Audio and Intercom
+# Holler
 
-Whole-home synchronized music and a push-to-talk intercom you build yourself. A Raspberry Pi runs the house. Small ESP32-S3 speakers in each room play the music and carry the pages. A paired iPhone app pages the house from anywhere. The music comes from Plex or from a plain network share.
+**Whole-home audio and intercom.** Synchronized music in every room and a push-to-talk intercom, built yourself. A Raspberry Pi runs the house. Small ESP32-S3 speakers in each room play the music and carry the pages. A paired iPhone app pages the house from anywhere. The music comes from Plex or from a plain network share.
 
 ![Tabletop endpoint with the magnetic grille removed](hardware/tabletop/renders/render_front_exploded.png)
 
 > **Status: design stage.** The system design and the first printable enclosure are here. No firmware, controller software, or phone app has been written yet, and the enclosure has not been printed or tested. Expect things to change.
+
+The name comes from what it replaces, hollering across the house, and from "hoot-n-holler," the old term for an always-open intercom line.
 
 ## What it does
 

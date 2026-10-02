@@ -1,4 +1,4 @@
-# Controller (Raspberry Pi 5)
+# Holler controller (Raspberry Pi 5)
 
 Not started. Services planned (see docs/design.md, section 2):
 
