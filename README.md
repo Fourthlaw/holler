@@ -1,6 +1,6 @@
 # Holler
 
-**Whole-home audio and intercom.** Synchronized music in every room and a push-to-talk intercom, built yourself. A Raspberry Pi runs the house. Small ESP32-S3 speakers in each room play the music and carry the pages. A paired iPhone app pages the house from anywhere. The music comes from Plex or from a plain network share.
+**Whole-home audio and intercom.** Synchronized music in every room and a push-to-talk intercom, built yourself. A Raspberry Pi runs the house. Small ESP32-S3 speakers in each room play the music and carry the pages. Paired iPhone and Android apps page the house from anywhere. The music comes from Plex or from a plain network share.
 
 ![Tabletop endpoint with the magnetic grille removed](hardware/tabletop/renders/render_front_exploded.png)
 
@@ -15,7 +15,8 @@ The name comes from what it replaces, hollering across the house, and from "hoot
 - **Background mode.** Any room can switch to a soft "music from the other room" sound for dinner or conversation, while the rest of the house plays normally. One button on the speaker turns it on or off, and the server can schedule it.
 - **Push-to-talk intercom.** Hold TALK in any room to page every other room. Music ducks while someone is talking, then comes back.
 - **Priority page.** Double-press TALK to get through to rooms that are turned down.
-- **Phone app.** A paired iPhone can page the house and hear house pages from anywhere, with no VPN and no open ports at home.
+- **Phone apps.** A paired iPhone or Android phone can page the house and hear house pages from anywhere, with no VPN.
+- **Two ways to reach home.** By default the phone and the house meet through a small server you host, and no port is opened at home. A simpler direct option forwards two ports instead, with no server to run, at the cost of exposing a service at home.
 - **Works through a power blip.** The tabletop speaker has a battery that keeps it online for hours.
 
 ## Privacy comes first
@@ -26,7 +27,7 @@ A microphone in every room has to be provably off.
 - Both conditions are wired in hardware. The firmware can see the state but has no wire that can change it, so a software bug or a compromised device cannot turn a mic on.
 - A red light shows mic mute. It is driven by the same hardware latch, so it cannot be faked.
 - Nothing remote can listen to a room. The phone app can talk to the house and hear a page that someone in the house chose to send. That is all.
-- The cloud server that connects phones to the house only passes along encrypted audio it cannot decrypt.
+- Whatever sits between a phone and the house, a hosted server or the open internet, only ever carries encrypted audio it cannot decrypt.
 
 ## How it fits together
 
@@ -42,21 +43,23 @@ flowchart LR
     Snap --> Rooms
     Intercom <--> Rooms
     subgraph Rooms[Room endpoints, ESP32-S3]
-        Wall[In-wall speaker]
         Table[Tabletop speaker]
+        Wall[In-wall speaker, optional]
     end
     Gateway <-->|outbound only| Cloud[Rendezvous server<br/>cloud, untrusted]
-    Phone[iPhone PTT app] <--> Cloud
+    Phone[iPhone and Android<br/>PTT apps] <--> Cloud
+    Phone -.->|direct mode, optional| Gateway
 ```
 
 | Part | What it is |
 |---|---|
 | Controller | Raspberry Pi 5 running Snapcast for music, the intercom server, MQTT, and a local web app |
 | Music library | Plex mode: Plex Media Server with a headless Plexamp player on the Pi, controlled from Plexamp. Share mode: a network share played by MPD on the Pi, controlled from a web page or any MPD app. Either one feeds Snapcast |
-| In-wall endpoint | ESP32-S3, 2 in. speaker, and mic behind a printed plate in a double-gang box, PoE preferred |
-| Tabletop endpoint | ESP32-S3, 2.5 in. woofer and dome tweeter in a folded transmission line, USB-C power, battery backup |
-| Phone app | iPhone push-to-talk app using WebRTC and Apple's PushToTalk framework |
-| Rendezvous server | A small cloud server that helps the phone and the house find each other. It relays encrypted audio and never holds the keys |
+| Tabletop endpoint | ESP32-S3, 2.5 in. woofer and dome tweeter in a folded transmission line, USB-C power, battery backup. This is the reference build |
+| In-wall endpoint (optional) | ESP32-S3, 2 in. speaker, and mic behind a printed plate in a double-gang box, PoE preferred. Same electronics and firmware; the plate is not modeled yet |
+| Phone apps | Push-to-talk apps for iPhone (WebRTC and Apple's PushToTalk framework) and Android (WebRTC and a foreground service) |
+| Rendezvous server (default) | A small hosted server that helps the phone and the house find each other and punch through to each other. It relays encrypted audio and never holds the keys |
+| Direct mode (optional) | No hosted server. The router forwards two ports to the Pi's remote gateway. Simpler and free, but it exposes a service at home to the internet |
 
 The full design, including the mic privacy circuit, the audio processing chain, and the remote intercom trust model, is in **[docs/design.md](docs/design.md)**.
 
@@ -99,9 +102,10 @@ Dimensions marked `VERIFY` in the script are estimates. Check them against the p
 |---|---|---|
 | [`docs/`](docs/) | System design | Current |
 | [`hardware/tabletop/`](hardware/tabletop/) | Tabletop enclosure: generator, STLs, renders | First design, not yet printed |
+| [`hardware/inwall/`](hardware/inwall/) | In-wall endpoint (optional) | Described, not modeled |
 | [`firmware/endpoint/`](firmware/endpoint/) | ESP32-S3 firmware for both endpoint types | Not started |
 | [`controller/`](controller/) | Pi 5 services | Not started |
-| [`remote/`](remote/) | Remote intercom: Pi gateway, rendezvous server, iPhone app | Not started |
+| [`remote/`](remote/) | Remote intercom: Pi gateway, rendezvous server, iPhone and Android apps | Not started |
 
 ## Roadmap
 
@@ -111,9 +115,11 @@ Dimensions marked `VERIFY` in the script are estimates. Check them against the p
 - [ ] Mic privacy board (latch, load switches, buffer)
 - [ ] Endpoint firmware: music playback, then intercom, then audio tuning and background mode
 - [ ] Controller: Snapcast, Plexamp or MPD, intercom server, web app
-- [ ] In-wall plate with five buttons
+- [ ] In-wall plate with five buttons (optional)
 - [ ] Remote intercom on the local network (web page)
 - [ ] Rendezvous server and iPhone app
+- [ ] Android app
+- [ ] Direct mode (port forward) as an option
 
 ## Feedback
 

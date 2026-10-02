@@ -13,7 +13,7 @@ Whole-home synchronized music and push-to-talk intercom.
 - Privacy by design: a room microphone is powered only while someone in that room holds PTT and the room's mic mute is off. Both conditions are enforced in hardware. No software path, including compromised firmware, can enable a microphone.
 - Media hosting and control, two ways: Plex (library and remote control, needs a Plex Pass) or a plain network share with an open-source player (no accounts, no subscription). A household picks one.
 - Background mode: any room can switch its music to a soft "playing in the next room" sound without changing what the rest of the house hears.
-- Remote intercom: family phones can page the house and hear house pages from anywhere, without a VPN and without opening any inbound port at home. Remote access covers the intercom only, not the music stream or house controls.
+- Remote intercom: family phones (iPhone and Android) can page the house and hear house pages from anywhere, without a VPN. The default path opens no inbound port at home; a simpler direct path that does is offered as a lower-security option. Remote access covers the intercom only, not the music stream or house controls.
 
 ---
 
@@ -59,49 +59,113 @@ Whole-home synchronized music and push-to-talk intercom.
 - MQTT with TLS and a unique username/password (or client cert) per endpoint. Endpoints ignore commands from any other source.
 - OTA firmware images are signed (ESP-IDF secure boot / signed app images). Endpoints reject unsigned images.
 - No inbound services on endpoints beyond what the audio and control protocols require.
-- Nothing at home accepts inbound connections from the internet. Remote intercom (2.3) runs over an outbound connection from the Pi.
+- By default nothing at home accepts inbound connections from the internet. Remote intercom (2.3) runs over an outbound connection from the Pi. The optional direct mode in 2.3 is the one exception, and it forwards only the remote gateway's two ports.
 
-### 2.3 Remote intercom (iPhone app via a cloud rendezvous server)
+### 2.3 Remote intercom (phone apps)
 
 **Scope:** intercom only. A remote phone can page the house and hear house pages. It cannot join the music stream, change volumes, read room state, or reach any admin or firmware function. Music and house controls stay on the local network and the local web app.
+
+**Two ways to connect**
+
+A household picks one. The apps, the pairing, and the audio encryption are the same in both.
+
+| | Rendezvous mode (default) | Direct mode (lower security) |
+|---|---|---|
+| How the phone reaches home | Both sides connect out to a small hosted server, which introduces them and hole-punches a path | The phone connects straight to the house through two forwarded ports |
+| Inbound ports open at home | None | Two (one TCP, one UDP), forwarded to the remote gateway |
+| Hosted server | Yes, a small VPS (about $5 a month) | None |
+| What the internet can reach | A disposable server that holds no keys and no house controls | A service running inside the home network |
+| Works behind carrier-grade NAT | Yes | No. Needs a public IP address at home (or IPv6 at both ends) |
+| Third parties that see connection metadata | Your own server, plus Apple or Google for push | Apple or Google for push |
+| Audio encryption and pairing | End to end, same in both | End to end, same in both |
+
+Rendezvous mode is the recommendation. Direct mode exists for people who do not want to run a hosted server and accept the exposure described below.
 
 **Pieces**
 
 | Piece | Runs on | Job |
 |---|---|---|
-| Rendezvous server | Small cloud VPS (smallest tier, about $5 a month) | Relays setup messages between the Pi and phones, runs a TURN relay (coturn) for when a direct path fails, and sends Apple push notifications to wake phones |
-| Remote intercom gateway | Pi 5 | Holds the outbound connection to the rendezvous server, terminates the phone's WebRTC audio, and bridges it to and from the house intercom |
-| Holler app | iPhone | Push-to-talk app built on Apple's PushToTalk framework (iOS 16 and later) and WebRTC |
+| Remote intercom gateway | Pi 5 | Terminates the phone's WebRTC audio and bridges it to and from the house intercom. In rendezvous mode it holds an outbound connection to the server; in direct mode it listens on the forwarded ports |
+| Rendezvous server (rendezvous mode only) | Small cloud VPS | Relays setup messages between the Pi and phones, runs a TURN relay (coturn) for when a direct path fails, and sends push notifications to wake phones |
+| Holler app for iPhone | iPhone | Push-to-talk app built on Apple's PushToTalk framework (iOS 16 and later) and WebRTC |
+| Holler app for Android | Android phone | Push-to-talk app built on WebRTC, a foreground service, and Firebase Cloud Messaging for wake-up |
 
-**Connection model**
+**Trust model (both modes): authenticate end to end, trust nothing in between**
+
+WebRTC encryption is only as good as the setup messages that carry each side's DTLS fingerprint. Anything that can alter those messages could sit in the middle. So setup is authenticated end to end, independent of the path:
+
+- **Pairing on the home network:** each phone is paired once, in person, on the LAN. The Pi's local web UI shows a QR code; the app scans it. The phone and the Pi exchange Ed25519 public keys. The Pi records the phone's key, name, and permissions. The QR code also carries how to reach the house: the rendezvous server address, or the home address and ports for direct mode.
+- **Signed setup messages:** every offer, answer, and session message is signed by its sender's device key and carries a nonce and timestamp (replay protection).
+- **Fingerprint binding:** the DTLS fingerprint is inside the signed message. Each side rejects a connection whose actual fingerprint does not match a signed message from a paired device.
+- **Result:** whatever sits between the phone and the Pi sees who is talking to whom and when, plus encrypted packets. It cannot listen, inject audio, or impersonate a phone or the house.
+
+**Rendezvous mode**
 
 - The Pi keeps one outbound secure WebSocket (TLS on 443) open to the rendezvous server. That is the only connection home makes to the internet for this feature. No port forwarding, no inbound rules, no VPN.
 - The phone also connects to the rendezvous server over a secure WebSocket, only when it needs to: when the user presses TALK, or when a push says a page is starting.
 - Audio runs over WebRTC between the phone and the Pi: Opus, mono, about 24 to 32 kbps, encrypted end to end with DTLS-SRTP.
 - Both sides first try a direct path (ICE with STUN, which punches through most home NATs). When that fails, common on cellular networks, the audio relays through TURN on the rendezvous server. Either way the server never holds the media keys.
+- The server is treated as untrusted. If it is taken over, the attacker gets an address book and encrypted packets.
 
-**Trust model: the cloud server is untrusted**
+Rendezvous server hardening:
 
-WebRTC encryption is only as good as the setup messages that carry each side's DTLS fingerprint. A compromised server could swap fingerprints and sit in the middle. So setup is authenticated end to end, independent of the server:
+- Open ports: 443/tcp (WebSocket and TLS), 3478 udp/tcp (STUN/TURN), and a narrow UDP relay port range for TURN. Nothing else.
+- TURN credentials are short-lived and issued per session (the TURN REST credential scheme), so a leaked credential expires in minutes.
+- Rate limits on connections, setup messages, and push requests per device.
+- The Pi authenticates to the server with its own device key; the server accepts only the paired Pi and paired phones.
+- No house control endpoints exist on the server, so there is nothing there to abuse even if it is taken over.
+- Minimal logging (device IDs and timestamps, no audio), automatic security updates, and a rebuild-from-script setup so the box can be replaced quickly.
 
-- **Pairing on the home network:** each phone is paired once, in person, on the LAN. The Pi's local web UI shows a QR code; the app scans it. The phone and the Pi exchange Ed25519 public keys. The Pi records the phone's key, name, and permissions.
-- **Signed setup messages:** every offer, answer, and session message is signed by its sender's device key and carries a nonce and timestamp (replay protection).
-- **Fingerprint binding:** the DTLS fingerprint is inside the signed message. Each side rejects a connection whose actual fingerprint does not match a signed message from a paired device.
-- **Result:** the rendezvous server sees who is talking to whom and when, plus encrypted packets. It cannot listen, inject audio, or impersonate a phone or the house.
+**Direct mode**
+
+- The home router forwards two ports to the remote gateway: one TCP port for setup messages (TLS) and one fixed UDP port for audio. Nothing else on the Pi or the LAN is forwarded.
+- The phone finds the house by a dynamic DNS name saved at pairing. It pins the Pi's key from pairing, so no public certificate authority is involved and a look-alike server cannot stand in.
+- No hosted server and no monthly cost. To wake phones for house pages, the Pi sends pushes to Apple and Google itself over outbound connections, which means the push credentials live on the Pi.
+- Audio uses the same WebRTC, Opus, and DTLS-SRTP as rendezvous mode.
+
+Why it is the lower-security option:
+
+- A service inside the home network is reachable by anyone on the internet. Any flaw in the gateway, or in the TLS and WebRTC libraries under it, can be probed by anyone who finds the ports. In rendezvous mode the same gateway is never directly reachable, and the exposed machine is a disposable server that holds nothing.
+- The dynamic DNS name ties the service to the home's address.
+- The encryption and pairing are not weaker. What changes is how much is exposed if there is a bug.
+
+Hardening for direct mode:
+
+- The gateway drops any connection whose first message is not signed by a paired device, before doing any other work, and answers nothing. To a scanner the port looks dead.
+- Run the gateway as its own unprivileged, sandboxed service. Better, run it on a separate small device in its own VLAN, so a compromise does not land on the controller.
+- A local firewall lets the gateway talk only to the intercom server's local port.
+- Rate limits and temporary bans on addresses that send bad messages. Non-default port numbers.
+- Automatic security updates for the gateway and its libraries.
+- Not possible behind carrier-grade NAT, which some ISPs use. Rendezvous mode works there.
 
 **Paging from the phone**
 
-1. User presses TALK in the app (or the system PTT button). The app connects to the rendezvous server and sends a signed offer to the Pi.
+1. User presses TALK in the app. The app connects (to the rendezvous server, or straight to the gateway in direct mode) and sends a signed offer to the Pi.
 2. The Pi verifies the signature and the phone's permissions, then requests the house intercom channel exactly as a room endpoint would. If another room holds the channel, the app shows busy.
 3. Audio flows phone to Pi over WebRTC; the Pi relays it onto the house intercom multicast. Rooms duck music and play it like any other page.
 4. Priority page from a phone works only if that phone's permissions allow it.
 
 **Hearing house pages on the phone**
 
-1. A room starts a page. The Pi begins buffering the audio and asks the rendezvous server to push to each subscribed phone.
-2. The rendezvous server sends an Apple PushToTalk push. iOS wakes the app and shows the system talk UI, even when the phone is locked.
+1. A room starts a page. The Pi begins buffering the audio and requests a push to each subscribed phone (through the rendezvous server, or directly to Apple and Google in direct mode).
+2. The push wakes the app (see the two apps below).
 3. The app connects and the Pi plays the buffered page from the start, then live. Expect about 1 to 2 seconds of added delay on the phone for the first page after the app wakes.
 4. Each phone can turn its page subscription off (for example at night or at work).
+
+**iPhone app**
+
+- Swift, the standard WebRTC framework, and Apple's PushToTalk framework.
+- A PushToTalk push wakes the app and shows the system talk UI, even when the phone is locked.
+- Needs a paid Apple developer account ($99 a year), which also allows installing on family phones through TestFlight.
+
+**Android app**
+
+- Kotlin and Google's WebRTC library. Same pairing, signing, and permissions as the iPhone app.
+- Hearing pages: a high-priority Firebase Cloud Messaging (FCM) message wakes the app, which starts a foreground service to connect and play the page. Android allows a foreground service to start from the background for a high-priority FCM message. The app checks that the message was not downgraded to normal priority before it starts the service.
+- Talking: on Android 14 and later, a foreground service that uses the microphone has to start while the app is visible. So talking means opening the app, or tapping the page notification, and holding TALK. There is no lock-screen talk button like the one Apple's framework provides.
+- Distribution: the APK can be installed directly on family phones at no cost. A Play Store listing is optional (one-time $25 developer fee).
+- FCM needs Google Play services. Phones without it would need a persistent connection instead; that is left as a later option.
+- Android background rules change between versions. Verify them against the current Android documentation when the app is built.
 
 **Permissions (set per phone, at the Pi)**
 
@@ -112,25 +176,16 @@ WebRTC encryption is only as good as the setup messages that carry each side's D
 | Receive house pages | on |
 | Music, volumes, room state, admin | not available remotely, for any phone |
 
-Revoking a phone at the Pi takes effect immediately; the rendezvous server only ever holds public keys and push tokens.
+Revoking a phone at the Pi takes effect immediately. The rendezvous server only ever holds public keys and push tokens.
 
-**Mic privacy is unchanged.** Nothing remote can open a room microphone. A house page reaches a phone only because someone in a room is holding TALK, and the room mics stay behind the hardware PTT and mute latch circuit (3.1.1).
-
-**Rendezvous server hardening**
-
-- Open ports: 443/tcp (WebSocket and TLS), 3478 udp/tcp (STUN/TURN), and a narrow UDP relay port range for TURN. Nothing else.
-- TURN credentials are short-lived and issued per session (the TURN REST credential scheme), so a leaked credential expires in minutes.
-- Rate limits on connections, setup messages, and push requests per device.
-- The Pi authenticates to the server with its own device key; the server accepts only the paired Pi and paired phones.
-- No house control endpoints exist on the server, so there is nothing there to abuse even if it is taken over.
-- Minimal logging (device IDs and timestamps, no audio), automatic security updates, and a rebuild-from-script setup so the box can be replaced quickly.
+**Mic privacy is unchanged.** Nothing remote can open a room microphone, in either mode. A house page reaches a phone only because someone in a room is holding TALK, and the room mics stay behind the hardware PTT and mute latch circuit (3.1.1).
 
 **Build notes**
 
 - Pi side: Pion (Go) or aiortc (Python) for WebRTC.
-- iPhone side: the standard WebRTC framework plus Apple's PushToTalk framework. This needs a paid Apple developer account ($99 a year), which also allows installing on family phones through TestFlight.
-- Phase 1, on the LAN only: a small web page served by the Pi that does WebRTC paging from Safari. It proves the gateway and signing scheme with no app and no cloud server.
-- Phase 2: the rendezvous server and the native iPhone app.
+- Phase 1, on the LAN only: a small web page served by the Pi that does WebRTC paging from a phone browser. It proves the gateway and signing scheme with no app and no hosted server.
+- Phase 2: one remote path (rendezvous first) and one native app. The second app and direct mode follow.
+- The two apps share the protocol, not code. A shared-code framework would not remove the native push-to-talk and background pieces, which are most of the work.
 
 ### 2.4 Music library and control
 
@@ -187,9 +242,30 @@ Network share or local disk (music files) -> MPD on the Pi 5 -> FIFO pipe -> Sna
 
 ## 3. Endpoint types
 
-### 3.1 Standard endpoint (in-wall mono, ESP32-S3)
+| Type | Section | What it is | Status |
+|---|---|---|---|
+| Tabletop | 3.4 | Printed desktop speaker, USB-C, battery backup, woofer and tweeter | Reference build. Enclosure designed, not yet printed |
+| In-wall | 3.1 | Mono speaker and mic behind a printed plate in a double-gang box, PoE | Optional. Designed on paper only; no plate or bracket model yet |
+| HiFi | 3.2, 3.3 | Raspberry Pi feeding stereo speakers or an existing receiver | Optional |
 
-**Use case:** typical rooms needing intercom and background music.
+The tabletop endpoint is the one being built first. The in-wall endpoint is kept in the design as an option for anyone who wants speakers in the walls. Both use the same electronics, mic privacy circuit, buttons, and firmware, which are described once in 3.1.1 and 3.1.2 and referred to from the tabletop section.
+
+### 3.1 In-wall endpoint (optional; mono, ESP32-S3)
+
+**Use case:** rooms where a speaker in the wall is wanted instead of a box on a table.
+
+**Status:** an option, not part of the reference build. The electronics and firmware below are shared with the tabletop endpoint and are current. The in-wall mechanical parts (plate with five button caps, speaker bracket) are described but not yet modeled; see `hardware/inwall/`.
+
+**Differences from the tabletop endpoint**
+
+| | In-wall | Tabletop |
+|---|---|---|
+| Speaker | One 2 in. full-range driver, sealed in the box | 2.5 in. woofer and dome tweeter, transmission line |
+| Amp | One MAX98357A | Two MAX98357A, software crossover |
+| Power | PoE preferred | USB-C with 18650 backup |
+| Network | Ethernet preferred | Wi-Fi |
+| Enclosure | Double-gang box, printed plate and bracket | Printed case |
+| Install | Low-voltage wiring in the wall | None |
 
 #### 3.1.1 Hardware
 
@@ -446,7 +522,7 @@ All volume values map to gain on a dB curve (for example 0 to 100 maps to -60 dB
 
 - Snapclient for music.
 - Intercom client for receive. A USB or I2S mic plus a PTT button can be added if the room needs to page.
-- Same MQTT control model and volume rules as the standard endpoint.
+- Same MQTT control model and volume rules as the ESP32-S3 endpoints.
 
 ### 3.3 HiFi system endpoint (existing stereo or AVR)
 
@@ -465,7 +541,7 @@ All volume values map to gain on a dB curve (for example 0 to 100 maps to -60 dB
 
 **Use case:** rooms where an in-wall box is not practical (rentals, desks, nightstands, the shop), or where the endpoint should stay up through a power blip.
 
-Same electronics and firmware as the standard endpoint (3.1), in a printed desktop enclosure with a folded transmission line, USB-C power, and a battery that carries it through outages.
+This is the reference build. It uses the shared electronics and firmware described in 3.1.1 and 3.1.2, in a printed desktop enclosure with a folded transmission line, USB-C power, and a battery that carries it through outages.
 
 #### 3.4.1 Form factor
 
@@ -532,7 +608,7 @@ Construction details:
 
 #### 3.4.3 Electronics
 
-Same as the standard endpoint unless noted.
+Same as the shared electronics in 3.1.1 unless noted.
 
 - **MCU:** ESP32-S3-DevKitC-1 (N8R8). Wi-Fi, since the tabletop unit has no Ethernet. The DevKitC has no mounting holes, so it sits on ledges in a tray with snap lips.
 - **Amps:** two MAX98357A breakouts on one I2S bus. The SD pin selects the channel on each board: one plays the left slot (woofer), the other the right slot (tweeter). Both sit on trays at the front of the bay. Speaker leads run through a small pass-through in the separator wall, then along the floor of leg 1 to the drivers. Seal the pass-through with hot glue or silicone after wiring.
@@ -707,12 +783,13 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 | Mosquitto | Pi 5 | Authenticated endpoint control |
 | Web app (Flask/FastAPI) | Pi 5 | UI, schedules, API |
 | Scheduler | Pi 5 | Alarms and announcements |
-| Standard endpoint firmware | ESP32-S3 | Playback, mix, duck, PTT capture, controls |
+| Endpoint firmware | ESP32-S3 (tabletop and in-wall) | Playback, mix, duck, PTT capture, controls |
 | Same firmware, plus battery/USB-present reporting | ESP32-S3 (tabletop) | As above, on Wi-Fi with battery backup |
 | Snapclient + intercom client | HiFi endpoints | Playback and optional paging |
 | Remote intercom gateway (Pion or aiortc) | Pi 5 | WebRTC to phones, bridged to the house intercom (2.3) |
-| Rendezvous server (signaling, coturn, push) | Cloud VPS | Connects phones and the Pi; sees only encrypted media (2.3) |
-| Holler app (Swift, WebRTC, PushToTalk) | iPhone | Remote paging and hearing pages (2.3) |
+| Rendezvous server (signaling, coturn, push) | Cloud VPS, rendezvous mode only | Connects phones and the Pi; sees only encrypted media (2.3) |
+| Holler app for iPhone (Swift, WebRTC, PushToTalk) | iPhone | Remote paging and hearing pages (2.3) |
+| Holler app for Android (Kotlin, WebRTC, FCM) | Android phone | Remote paging and hearing pages (2.3) |
 
 ## 7. Future extensions
 
