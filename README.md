@@ -1,6 +1,6 @@
 # Home Audio and Intercom
 
-Whole-home synchronized music and a push-to-talk intercom you build yourself. A Raspberry Pi runs the house. Small ESP32-S3 speakers in each room play the music and carry the pages. A paired iPhone app pages the house from anywhere. Plex hosts the music library.
+Whole-home synchronized music and a push-to-talk intercom you build yourself. A Raspberry Pi runs the house. Small ESP32-S3 speakers in each room play the music and carry the pages. A paired iPhone app pages the house from anywhere. The music comes from Plex or from a plain network share.
 
 ![Tabletop endpoint with the magnetic grille removed](hardware/tabletop/renders/render_front_exploded.png)
 
@@ -8,7 +8,9 @@ Whole-home synchronized music and a push-to-talk intercom you build yourself. A 
 
 ## What it does
 
-- **Music in every room, in sync.** Pick music in Plex and it plays through the whole house with no echo between rooms.
+- **Music in every room, in sync.** One stream plays through the whole house with no echo between rooms.
+- **Your library, two ways.** Use Plex and pick music in Plexamp (needs a Plex Pass), or point it at a network share and pick music from a web page or any MPD app, with no account at all.
+- **Background mode.** Any room can switch to a soft "music from the other room" sound for dinner or conversation, while the rest of the house plays normally.
 - **Push-to-talk intercom.** Hold TALK in any room to page every other room. Music ducks while someone is talking, then comes back.
 - **Priority page.** Double-press TALK to get through to rooms that are turned down.
 - **Phone app.** A paired iPhone can page the house and hear house pages from anywhere, with no VPN and no open ports at home.
@@ -28,9 +30,9 @@ A microphone in every room has to be provably off.
 
 ```mermaid
 flowchart LR
-    Plex[Plex Media Server<br/>music library] --> Plexamp[Plexamp headless]
+    Library[Music library<br/>Plex server or network share] --> Player
     subgraph Pi[Raspberry Pi 5 controller]
-        Plexamp --> Snap[Snapserver<br/>synced music]
+        Player[Plexamp or MPD] --> Snap[Snapserver<br/>synced music]
         Intercom[Intercom server]
         Gateway[Remote gateway]
         Web[Web app and MQTT]
@@ -48,7 +50,7 @@ flowchart LR
 | Part | What it is |
 |---|---|
 | Controller | Raspberry Pi 5 running Snapcast for music, the intercom server, MQTT, and a local web app |
-| Media library | Plex Media Server. A headless Plexamp player on the Pi feeds Snapcast, so Plex is the remote control for the house |
+| Music library | Plex mode: Plex Media Server with a headless Plexamp player on the Pi, controlled from Plexamp. Share mode: a network share played by MPD on the Pi, controlled from a web page or any MPD app. Either one feeds Snapcast |
 | In-wall endpoint | ESP32-S3, 2 in. speaker, and mic behind a printed plate in a double-gang box, PoE preferred |
 | Tabletop endpoint | ESP32-S3, 2.5 in. woofer and dome tweeter in a folded transmission line, USB-C power, battery backup |
 | Phone app | iPhone push-to-talk app using WebRTC and Apple's PushToTalk framework |
@@ -105,8 +107,8 @@ Dimensions marked `VERIFY` in the script are estimates. Check them against the p
 - [x] Tabletop enclosure, first design
 - [ ] Print and fit-check the tabletop enclosure
 - [ ] Mic privacy board (latch, load switches, buffer)
-- [ ] Endpoint firmware: music playback, then intercom, then audio tuning
-- [ ] Controller: Snapcast, Plexamp, intercom server, web app
+- [ ] Endpoint firmware: music playback, then intercom, then audio tuning and background mode
+- [ ] Controller: Snapcast, Plexamp or MPD, intercom server, web app
 - [ ] In-wall plate with four buttons
 - [ ] Remote intercom on the local network (web page)
 - [ ] Rendezvous server and iPhone app

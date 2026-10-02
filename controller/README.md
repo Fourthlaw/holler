@@ -2,8 +2,9 @@
 
 Not started. Services planned (see docs/design.md, section 2):
 
-- Plex Media Server for the music library (here or on another machine)
-- Plexamp headless as the house Plex player, feeding Snapserver through an ALSA loopback
+- Music source, one of two modes:
+  - Plex mode: Plex Media Server for the library (here or on another machine) and Plexamp headless as the house player, feeding Snapserver through an ALSA loopback
+  - Share mode: MPD playing from a network share into a Snapserver pipe, with a music page in the web app
 - Snapserver for synchronized music
 - Intercom server: PTT arbitration, Opus relay, priority pages
 - Mosquitto MQTT broker with per-device credentials

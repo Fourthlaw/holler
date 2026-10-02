@@ -9,7 +9,8 @@
 - Upgradeable: some rooms can use higher-fidelity stereo endpoints.
 - All endpoints digitally controllable (volume, mute, overrides) from a central controller.
 - Privacy by design: a room microphone is powered only while someone in that room holds PTT and the room's mic mute is off. Both conditions are enforced in hardware. No software path, including compromised firmware, can enable a microphone.
-- Media hosting: a Plex Media Server holds the household music library, and Plex is the app people use to pick what plays through the house.
+- Media hosting and control, two ways: Plex (library and remote control, needs a Plex Pass) or a plain network share with an open-source player (no accounts, no subscription). A household picks one.
+- Background mode: any room can switch its music to a soft "playing in the next room" sound without changing what the rest of the house hears.
 - Remote intercom: family phones can page the house and hear house pages from anywhere, without a VPN and without opening any inbound port at home. Remote access covers the intercom only, not the music stream or house controls.
 
 ---
@@ -28,7 +29,7 @@
 
 1. **Music distribution**
    - Runs Snapserver for synchronized multi-room audio.
-   - Sources: the Plex music library through a headless Plexamp player (2.4), internet radio, TTS, alert tones.
+   - Sources: the music library through Plexamp or MPD (2.4), internet radio, TTS, alert tones.
    - Snapcast buffers audio (default about 1 s) to keep rooms in sync. That is fine for music and is the reason intercom uses a separate path.
 
 2. **Intercom server**
@@ -129,11 +130,23 @@ Revoking a phone at the Pi takes effect immediately; the rendezvous server only 
 - Phase 1, on the LAN only: a small web page served by the Pi that does WebRTC paging from Safari. It proves the gateway and signing scheme with no app and no cloud server.
 - Phase 2: the rendezvous server and the native iPhone app.
 
-### 2.4 Media library (Plex)
+### 2.4 Music library and control
 
-**Role:** Plex Media Server hosts the music library. Snapcast distributes whatever is playing to the rooms. Plex is the library and the remote control; Snapcast is the delivery.
+Snapcast delivers whatever is playing to the rooms. What feeds Snapcast, and what people use to pick music, is one of two modes. A household chooses one at setup.
 
-**How music gets from Plex to the rooms**
+| | Plex mode | Share mode |
+|---|---|---|
+| Library lives on | Plex Media Server | Any network share (SMB or NFS) or a local disk |
+| Player on the Pi | Plexamp headless | MPD (Music Player Daemon) |
+| Pick music with | Plexamp on a phone or desktop | A web page served by the Pi, or any MPD client app |
+| Accounts and cost | Plex account with a Plex Pass | None |
+| Needs internet | Yes, for Plex sign-in | No |
+| Playlists, queue, search | Yes | Yes |
+| Smart mixes and artist radio | Yes | No |
+
+Both modes end the same way: the player's audio goes into Snapserver, and every room plays it in sync. Play, pause, and skip take about a second to be heard because of the Snapcast sync buffer. Volume per room is set at each endpoint or in the local web app, in either mode.
+
+**Plex mode**
 
 ```
 Plex Media Server (library) -> Plexamp headless on the Pi 5 (a Plex player named "House")
@@ -142,20 +155,31 @@ Plex Media Server (library) -> Plexamp headless on the Pi 5 (a Plex player named
 
 - Plexamp headless runs on the Pi 5 and appears in Plex as a player. Choosing it as the player in Plexamp on a phone plays that music through every room.
 - Plexamp's audio output is pointed at an ALSA loopback device. Snapserver reads the other side of the loopback as a stream source.
-- Play, pause, and skip take about a second to be heard, because of the Snapcast sync buffer. Volume per room is still set at each endpoint or in the local web app.
 - Headless Plexamp requires a Plex Pass on the account that owns the player. Other members of the Plex Home can play to it without their own.
+- Install Plexamp directly on the Pi, not in Docker. Others report playback errors with the Docker route.
 - Plex signs in through plex.tv, so the Pi needs outbound internet for this piece. The room endpoints still do not.
+- Plex Media Server can run on the Pi 5 or on another machine or NAS on the LAN. For a music library the Pi 5 is enough. If the same server also transcodes video for TVs, put it on a stronger machine.
 
-**Where the server runs**
+**Share mode**
 
-- Plex Media Server can run on the Pi 5 next to the other services, or on another machine or NAS on the LAN. For a music library the Pi 5 is enough. If the same server also transcodes video for TVs, put it on a stronger machine and leave the Pi as the player and controller.
-- Video is outside this system. Plex serves TVs and phones directly as it normally does.
+```
+Network share or local disk (music files) -> MPD on the Pi 5 -> FIFO pipe -> Snapserver (pipe source)
+        -> every endpoint, in sync
+```
 
-**Without Plex**
+- The Pi mounts the share read-only. MPD indexes it and plays from it. MPD into a Snapserver pipe is the standard Snapcast setup.
+- Control: a music page in the Pi's web app (browse, search, queue, playlists, play, pause, skip), built on MPD's control protocol. The open-source myMPD web client can stand in until that page exists. Any MPD client app on a phone also works.
+- The share can be the same folder a Plex server uses. A household without a Plex Pass can keep Plex for TVs and still drive the house music from the share.
+- No account, no subscription, and nothing leaves the LAN.
 
-- Snapserver can also play straight from a music folder (for example through MPD), with no Plex account. That path stays available as a fallback and for people who do not use Plex.
+**Switching and coexisting**
 
-**To be tested:** the Plexamp to ALSA loopback to Snapserver chain on the Pi 5, including sample rate handling and gapless playback.
+- Snapserver can hold both sources at once, so both players can be installed and the active one chosen in the web app. The setup default is one mode, to keep things simple.
+- Internet radio, announcements, and alarms are separate Snapserver sources in both modes.
+
+**Video** is outside this system. Plex serves TVs and phones directly as it normally does.
+
+**To be tested:** the Plexamp to ALSA loopback to Snapserver chain on the Pi 5 (sample rate handling, gapless playback), and MPD library scan time on a large share.
 
 ---
 
@@ -307,6 +331,8 @@ Alternate: local 5 V supply.
 - `priority_floor` (0-100, default 70): minimum playback level for a priority page
 - `night_lock` (bool, per room): hard quiet that even a priority page respects
 - `mic_muted` (bool, **read-only**): mirrors the hardware mute latch; firmware cannot change it
+- `sound_mode` (`normal` or `background`, per room): see Background mode below
+- `background_amount` (0-100, default 60): how far the background effect goes
 
 **Button gestures**
 
@@ -329,6 +355,30 @@ If TALK is pressed while the mic is muted, the endpoint does not request the cha
 - It breaks through `music_mute` and `intercom_mute`.
 - It does not override `night_lock`. That is for rooms where nothing should ever play, such as a sleeping child's room.
 - The controller keeps an allow-list of endpoints permitted to send priority pages, rate-limits them, and logs each one.
+
+**Background mode ("music from the other room")**
+
+A per-room sound setting for when music should be present but not in the way: dinner, reading, working, a conversation. It makes the music sound like it is playing in the next room. The effect runs on the endpoint, so one room can be in background mode while the rest of the house plays normally from the same stream.
+
+What it does to the music, at the default amount:
+
+| Stage | Setting | Why |
+|---|---|---|
+| Low-pass | 2nd order at about 2 kHz | Walls and doorways pass lows and block highs. This is most of the effect. |
+| Presence cut | About -4 dB around 3 kHz | Keeps music out of the range where speech is understood, so it does not compete with conversation. |
+| Low shelf | About +3 dB below 150 Hz | Keeps it warm instead of thin once the highs are gone. |
+| Level | About -6 dB | Further away sounds quieter. |
+| Compression | Gentle, about 2:1 | Holds a steady low level so loud passages do not jump out and quiet ones do not vanish. |
+| Short reverb (optional, off by default) | Small room, about 0.3 s | Adds the diffuse sound of a far room. Costs the most CPU and memory, so it is opt-in. |
+
+- `background_amount` scales the whole effect: 0 is normal sound, 100 is a heavy version (low-pass near 1 kHz, about -9 dB).
+- Switching fades between the two filter sets over about half a second, so there is no click.
+- Intercom pages, priority pages, and alarms bypass the effect. Voice always plays at full clarity.
+- On the tabletop endpoint the low-pass sits below the crossover, so the tweeter goes nearly silent in this mode. That is expected.
+- Set per room from the web app or over MQTT, and it can be scheduled (for example, background in the kitchen from 6 to 8 pm).
+- Cost: three or four extra biquads and a simple compressor per endpoint. Small for the ESP32-S3.
+- HiFi endpoints (3.2, 3.3) can run the same filters in software on the Pi, for example with CamillaDSP.
+- The values above are starting points to tune by ear on a built endpoint.
 
 **Volume rules (in priority order)**
 
@@ -366,7 +416,7 @@ All volume values map to gain on a dB curve (for example 0 to 100 maps to -60 dB
 
 - **Control and telemetry**
   - Accepts commands only over authenticated MQTT.
-  - Commands: set music/intercom volume and mute, set or clear system override, set system mute, set per-room policy. There is no command for the mic mute; it exists only as a button.
+  - Commands: set music/intercom volume and mute, set sound mode and background amount, set or clear system override, set system mute, set per-room policy. There is no command for the mic mute; it exists only as a button.
   - Reports: online status, PTT events, volume and mute state, `mic_muted`, firmware version, errors.
   - Signed OTA updates.
 
@@ -496,8 +546,8 @@ Same as the standard endpoint unless noted.
 - **Audio processing (on the ESP32-S3):** the decoded stream is processed per sample block before it goes to the I2S amps:
 
 ```
-Snapcast stereo -> mono downmix -+-> room/driver EQ (parametric) -> crossover, LR4 at about 4.5 kHz
-Intercom Opus  -> ducking mix   -+       |                                  |
+Snapcast stereo -> mono downmix -> background mode (if on) -+-> room/driver EQ (parametric) -> crossover, LR4 at about 4.5 kHz
+Intercom Opus  -> ducking mix (bypasses background mode)  -+       |                                  |
                                           woofer: high-pass 80-90 Hz,      tweeter: level trim (about -3 dB),
                                           volume-dependent bass boost,     small delay for time alignment
                                           limiter                          (about 2 samples at 48 kHz)
@@ -637,8 +687,9 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 
 | Component | Runs on | Purpose |
 |---|---|---|
-| Plex Media Server | Pi 5 or another LAN machine | Music library (2.4) |
-| Plexamp headless | Pi 5 | Plex player that feeds Snapserver through an ALSA loopback (2.4) |
+| Plex Media Server (Plex mode) | Pi 5 or another LAN machine | Music library (2.4) |
+| Plexamp headless (Plex mode) | Pi 5 | Plex player that feeds Snapserver through an ALSA loopback (2.4) |
+| MPD (share mode) | Pi 5 | Plays from a network share into Snapserver; controlled from the web app or any MPD client (2.4) |
 | Snapserver | Pi 5 | Synchronized music |
 | Intercom server | Pi 5 | PTT arbitration and Opus relay |
 | Mosquitto | Pi 5 | Authenticated endpoint control |
