@@ -9,6 +9,7 @@
 - Upgradeable: some rooms can use higher-fidelity stereo endpoints.
 - All endpoints digitally controllable (volume, mute, overrides) from a central controller.
 - Privacy by design: a room microphone is powered only while someone in that room holds PTT and the room's mic mute is off. Both conditions are enforced in hardware. No software path, including compromised firmware, can enable a microphone.
+- Media hosting: a Plex Media Server holds the household music library, and Plex is the app people use to pick what plays through the house.
 - Remote intercom: family phones can page the house and hear house pages from anywhere, without a VPN and without opening any inbound port at home. Remote access covers the intercom only, not the music stream or house controls.
 
 ---
@@ -27,7 +28,7 @@
 
 1. **Music distribution**
    - Runs Snapserver for synchronized multi-room audio.
-   - Sources: local music library (same storage Plex uses; Snapserver is the player), internet radio, TTS, alert tones.
+   - Sources: the Plex music library through a headless Plexamp player (2.4), internet radio, TTS, alert tones.
    - Snapcast buffers audio (default about 1 s) to keep rooms in sync. That is fine for music and is the reason intercom uses a separate path.
 
 2. **Intercom server**
@@ -127,6 +128,34 @@ Revoking a phone at the Pi takes effect immediately; the rendezvous server only 
 - iPhone side: the standard WebRTC framework plus Apple's PushToTalk framework. This needs a paid Apple developer account ($99 a year), which also allows installing on family phones through TestFlight.
 - Phase 1, on the LAN only: a small web page served by the Pi that does WebRTC paging from Safari. It proves the gateway and signing scheme with no app and no cloud server.
 - Phase 2: the rendezvous server and the native iPhone app.
+
+### 2.4 Media library (Plex)
+
+**Role:** Plex Media Server hosts the music library. Snapcast distributes whatever is playing to the rooms. Plex is the library and the remote control; Snapcast is the delivery.
+
+**How music gets from Plex to the rooms**
+
+```
+Plex Media Server (library) -> Plexamp headless on the Pi 5 (a Plex player named "House")
+        -> ALSA loopback device -> Snapserver (alsa source) -> every endpoint, in sync
+```
+
+- Plexamp headless runs on the Pi 5 and appears in Plex as a player. Choosing it as the player in Plexamp on a phone plays that music through every room.
+- Plexamp's audio output is pointed at an ALSA loopback device. Snapserver reads the other side of the loopback as a stream source.
+- Play, pause, and skip take about a second to be heard, because of the Snapcast sync buffer. Volume per room is still set at each endpoint or in the local web app.
+- Headless Plexamp requires a Plex Pass on the account that owns the player. Other members of the Plex Home can play to it without their own.
+- Plex signs in through plex.tv, so the Pi needs outbound internet for this piece. The room endpoints still do not.
+
+**Where the server runs**
+
+- Plex Media Server can run on the Pi 5 next to the other services, or on another machine or NAS on the LAN. For a music library the Pi 5 is enough. If the same server also transcodes video for TVs, put it on a stronger machine and leave the Pi as the player and controller.
+- Video is outside this system. Plex serves TVs and phones directly as it normally does.
+
+**Without Plex**
+
+- Snapserver can also play straight from a music folder (for example through MPD), with no Plex account. That path stays available as a fallback and for people who do not use Plex.
+
+**To be tested:** the Plexamp to ALSA loopback to Snapserver chain on the Pi 5, including sample rate handling and gapless playback.
 
 ---
 
@@ -608,6 +637,8 @@ All parts fit the A1's 256 x 256 mm bed. The base (250 x 173 mm) is the largest;
 
 | Component | Runs on | Purpose |
 |---|---|---|
+| Plex Media Server | Pi 5 or another LAN machine | Music library (2.4) |
+| Plexamp headless | Pi 5 | Plex player that feeds Snapserver through an ALSA loopback (2.4) |
 | Snapserver | Pi 5 | Synchronized music |
 | Intercom server | Pi 5 | PTT arbitration and Opus relay |
 | Mosquitto | Pi 5 | Authenticated endpoint control |
